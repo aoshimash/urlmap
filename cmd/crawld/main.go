@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"log/slog"
 	"net/url"
 	"os"
 
+	"github.com/aoshimash/crawld/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -72,30 +72,26 @@ func runCrawl(cmd *cobra.Command, args []string) error {
 	}
 
 	// Set up logging based on verbose flag
-	logLevel := slog.LevelInfo
-	if verbose {
-		logLevel = slog.LevelDebug
-	}
+	loggingConfig := config.NewLoggingConfig(verbose)
+	loggingConfig.SetupLogger()
 
-	// Create logger
-	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level: logLevel,
-	}))
-
-	logger.Info("Starting crawl",
-		"url", targetURL,
-		"depth", depth,
-		"concurrent", concurrent,
-		"user_agent", userAgent,
-	)
+	// Log the start of crawl operation with structured logging
+	config.LogCrawlStart(targetURL, depth, concurrent, userAgent)
 
 	// TODO: Implement actual crawling logic
+	// Output goes to stdout, logs go to stderr
 	fmt.Printf("Crawling %s with depth %d and %d concurrent requests\n", targetURL, depth, concurrent)
 	fmt.Printf("User-Agent: %s\n", userAgent)
 
+	// Example of structured logging calls
 	if verbose {
-		fmt.Println("Verbose logging enabled")
+		config.LogInfo("Verbose logging enabled")
 	}
+
+	// Example of how to log progress and errors (for future implementation)
+	// config.LogCrawlProgress(targetURL, 0, 200)
+	// config.LogCrawlError(targetURL, 0, fmt.Errorf("example error"))
+	// config.LogCrawlComplete(targetURL, 1, 0)
 
 	return nil
 }
