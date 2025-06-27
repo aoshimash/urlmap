@@ -80,9 +80,21 @@ func setupCLITest(t *testing.T) (string, func()) {
 
 	// Build the urlmap binary
 	binaryPath := filepath.Join(tempDir, "urlmap")
-	cmd := exec.Command("go", "build", "-o", binaryPath, "./cmd/urlmap")
+
+	// Get project root directory
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Failed to get working directory: %v", err)
+	}
+
+	// Navigate to project root (assuming we're in test/integration)
+	projectRoot := filepath.Join(wd, "..", "..")
+	cmdPath := filepath.Join(projectRoot, "cmd", "urlmap")
+
+	cmd := exec.Command("go", "build", "-o", binaryPath, cmdPath)
+	cmd.Dir = projectRoot
 	if err := cmd.Run(); err != nil {
-		t.Fatalf("Failed to build urlmap binary: %v", err)
+		t.Fatalf("Failed to build urlmap binary from %s: %v", cmdPath, err)
 	}
 
 	return binaryPath, func() {
@@ -283,7 +295,7 @@ func TestVersionCommand(t *testing.T) {
 	}
 
 	outputStr := string(output)
-	if !strings.Contains(outputStr, "crawld version") {
+	if !strings.Contains(outputStr, "urlmap version") {
 		t.Errorf("Expected version output to contain version info, got: %s", outputStr)
 	}
 }
