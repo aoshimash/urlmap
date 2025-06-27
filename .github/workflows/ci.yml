@@ -1,0 +1,68 @@
+# GitHub Actions CI Workflow for crawld
+# This workflow runs on push to main/develop branches and on pull requests
+# It tests the code with multiple Go versions, runs linting, and formatting checks
+
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        go-version: ['1.21', '1.22']
+    
+    steps:
+    # Checkout the code
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    # Setup Go with matrix version
+    - name: Set up Go ${{ matrix.go-version }}
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ matrix.go-version }}
+        cache: true
+    
+    # Download and cache Go modules
+    - name: Download dependencies
+      run: go mod download
+    
+    # Verify Go modules
+    - name: Verify dependencies
+      run: go mod verify
+    
+    # Check code formatting
+    - name: Check code formatting
+      run: |
+        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+          echo "Code is not formatted properly. Please run 'go fmt ./...'"
+          gofmt -s -l .
+          exit 1
+        fi
+    
+    # Run go vet for static analysis
+    - name: Run go vet
+      run: go vet ./...
+    
+    # Build the application
+    - name: Build
+      run: go build -v ./...
+    
+    # Run tests with verbose output and race detection
+    - name: Run tests
+      run: go test -v -race -coverprofile=coverage.out ./...
+    
+    # Upload coverage to GitHub (optional, for coverage tracking)
+    - name: Upload coverage reports
+      if: matrix.go-version == '1.22'
+      run: |
+        echo "Coverage report generated"
+        go tool cover -func=coverage.out
