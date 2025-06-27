@@ -75,7 +75,7 @@ type ConcurrentCrawler struct {
 
 // Config holds configuration for the crawler
 type Config struct {
-	MaxDepth       int              // Maximum depth to crawl (0 = no limit)
+	MaxDepth       int              // Maximum depth to crawl (-1 = no limit, 0 = root only)
 	SameDomain     bool             // Whether to limit crawling to same domain
 	UserAgent      string           // User agent to use for requests
 	Timeout        time.Duration    // Request timeout
@@ -176,7 +176,7 @@ func (c *Crawler) CrawlRecursive(startURL string) ([]CrawlResult, *CrawlStats, e
 		c.logger.Debug("Processing URL", "url", current.url, "depth", current.depth, "queue_size", len(queue))
 
 		// Check depth limit
-		if c.maxDepth > 0 && current.depth > c.maxDepth {
+		if c.maxDepth >= 0 && current.depth > c.maxDepth {
 			c.logger.Debug("Skipping URL due to depth limit", "url", current.url, "depth", current.depth)
 			c.stats.SkippedURLs++
 			continue
@@ -458,7 +458,7 @@ func (cc *ConcurrentCrawler) processJob(job CrawlJob, workerID int) {
 	}
 
 	// Check depth limit
-	if cc.maxDepth > 0 && job.Depth > cc.maxDepth {
+	if cc.maxDepth >= 0 && job.Depth > cc.maxDepth {
 		cc.logger.Debug("Skipping job due to depth limit", "url", job.URL, "depth", job.Depth)
 		cc.mu.Lock()
 		cc.stats.SkippedURLs++
