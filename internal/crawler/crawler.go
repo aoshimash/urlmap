@@ -4,12 +4,19 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/aoshimash/crawld/internal/client"
 	"github.com/aoshimash/crawld/internal/parser"
 	"github.com/aoshimash/crawld/internal/url"
 )
+
+// CrawlJob represents a job to be processed by a worker
+type CrawlJob struct {
+	URL   string // URL to crawl
+	Depth int    // Depth of this URL in the crawl tree
+}
 
 // CrawlResult represents the result of crawling a single URL
 type CrawlResult struct {
@@ -44,6 +51,22 @@ type Crawler struct {
 	baseDomain string                // Base domain for same-domain filtering
 	results    []CrawlResult         // Results of crawling operations
 	stats      CrawlStats            // Crawling statistics
+	workers    int                   // Number of concurrent workers
+}
+
+// ConcurrentCrawler handles concurrent crawling with worker pool
+type ConcurrentCrawler struct {
+	*Crawler                        // Embed the original crawler
+	jobs         chan CrawlJob      // Channel for distributing jobs
+	results      chan CrawlResult   // Channel for collecting results
+	visited      sync.Map           // Thread-safe visited URLs tracker
+	mu           sync.RWMutex       // Mutex for protecting shared state
+	wg           sync.WaitGroup     // WaitGroup for worker synchronization
+	ctx          context.Context    // Context for cancellation
+	cancel       context.CancelFunc // Cancel function
+	resultsList  []CrawlResult      // Thread-safe results collection
+	activeJobs   int                // Number of active jobs
+	activeJobsMu sync.Mutex         // Mutex for active jobs counter
 }
 
 // Config holds configuration for the crawler
@@ -53,6 +76,7 @@ type Config struct {
 	UserAgent  string        // User agent to use for requests
 	Timeout    time.Duration // Request timeout
 	Logger     *slog.Logger  // Logger instance
+	Workers    int           // Number of concurrent workers
 }
 
 // DefaultConfig returns a default crawler configuration
@@ -63,6 +87,7 @@ func DefaultConfig() *Config {
 		UserAgent:  "crawld/1.0",
 		Timeout:    30 * time.Second,
 		Logger:     slog.Default(),
+		Workers:    10,
 	}
 }
 
@@ -85,6 +110,11 @@ func New(config *Config) (*Crawler, error) {
 	// Create link extractor
 	linkExtractor := parser.NewLinkExtractor(config.Logger)
 
+	workers := config.Workers
+	if workers <= 0 {
+		workers = 10 // Default number of workers
+	}
+
 	return &Crawler{
 		client:     httpClient,
 		parser:     linkExtractor,
@@ -94,6 +124,7 @@ func New(config *Config) (*Crawler, error) {
 		sameDomain: config.SameDomain,
 		results:    make([]CrawlResult, 0),
 		stats:      CrawlStats{},
+		workers:    workers,
 	}, nil
 }
 
@@ -282,4 +313,278 @@ func (c *Crawler) GetSuccessfulURLs() []string {
 		}
 	}
 	return urls
+}
+
+// NewConcurrentCrawler creates a new concurrent crawler with worker pool
+func NewConcurrentCrawler(config *Config) (*ConcurrentCrawler, error) {
+	crawler, err := New(config)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	return &ConcurrentCrawler{
+		Crawler:     crawler,
+		jobs:        make(chan CrawlJob, crawler.workers*2), // Buffer for better performance
+		results:     make(chan CrawlResult, crawler.workers*2),
+		visited:     sync.Map{},
+		ctx:         ctx,
+		cancel:      cancel,
+		resultsList: make([]CrawlResult, 0),
+	}, nil
+}
+
+// CrawlConcurrent performs concurrent crawling starting from the given URL
+func (cc *ConcurrentCrawler) CrawlConcurrent(startURL string) ([]CrawlResult, *CrawlStats, error) {
+	cc.logger.Info("Starting concurrent crawl", "start_url", startURL, "max_depth", cc.maxDepth, "workers", cc.workers)
+	cc.stats.StartTime = time.Now()
+
+	// Validate and normalize the start URL
+	if !url.IsValidURL(startURL) {
+		return nil, &cc.stats, fmt.Errorf("invalid start URL: %s", startURL)
+	}
+
+	normalizedURL, err := url.NormalizeURL(startURL)
+	if err != nil {
+		return nil, &cc.stats, fmt.Errorf("failed to normalize start URL: %w", err)
+	}
+
+	// Extract base domain for same-domain filtering
+	if cc.sameDomain {
+		cc.baseDomain, err = url.ExtractDomain(normalizedURL)
+		if err != nil {
+			return nil, &cc.stats, fmt.Errorf("failed to extract base domain: %w", err)
+		}
+		cc.logger.Debug("Same-domain filtering enabled", "base_domain", cc.baseDomain)
+	}
+
+	// Start workers
+	for i := 0; i < cc.workers; i++ {
+		cc.wg.Add(1)
+		go cc.worker(i)
+	}
+
+	// Start result collector
+	go cc.resultCollector()
+
+	// Add the start URL to the job queue
+	cc.visited.Store(normalizedURL, true)
+	cc.stats.TotalURLs = 1
+	cc.addJob(CrawlJob{URL: normalizedURL, Depth: 0})
+
+	// Wait for all jobs to complete
+	cc.wg.Wait()
+	close(cc.results)
+
+	// Wait a bit for result collector to finish
+	time.Sleep(100 * time.Millisecond)
+
+	cc.stats.TotalTime = time.Since(cc.stats.StartTime)
+	cc.logger.Info("Concurrent crawling completed",
+		"total_urls", cc.stats.TotalURLs,
+		"crawled_urls", cc.stats.CrawledURLs,
+		"failed_urls", cc.stats.FailedURLs,
+		"skipped_urls", cc.stats.SkippedURLs,
+		"max_depth_reached", cc.stats.MaxDepthReached,
+		"total_time", cc.stats.TotalTime)
+
+	return cc.resultsList, &cc.stats, nil
+}
+
+// worker processes jobs from the job queue
+func (cc *ConcurrentCrawler) worker(id int) {
+	defer cc.wg.Done()
+	cc.logger.Debug("Worker started", "worker_id", id)
+
+	for {
+		select {
+		case job, ok := <-cc.jobs:
+			if !ok {
+				cc.logger.Debug("Worker stopping - jobs channel closed", "worker_id", id)
+				return
+			}
+			cc.processJob(job, id)
+		case <-cc.ctx.Done():
+			cc.logger.Debug("Worker stopping - context cancelled", "worker_id", id)
+			return
+		}
+	}
+}
+
+// processJob processes a single crawl job
+func (cc *ConcurrentCrawler) processJob(job CrawlJob, workerID int) {
+	defer func() {
+		cc.activeJobsMu.Lock()
+		cc.activeJobs--
+		isLastJob := cc.activeJobs == 0
+		cc.activeJobsMu.Unlock()
+
+		if isLastJob {
+			// No more active jobs, close the jobs channel
+			close(cc.jobs)
+		}
+	}()
+
+	cc.logger.Debug("Processing job", "worker_id", workerID, "url", job.URL, "depth", job.Depth)
+
+	// Check depth limit
+	if cc.maxDepth > 0 && job.Depth >= cc.maxDepth {
+		cc.logger.Debug("Skipping job due to depth limit", "url", job.URL, "depth", job.Depth)
+		cc.mu.Lock()
+		cc.stats.SkippedURLs++
+		cc.mu.Unlock()
+		return
+	}
+
+	// Crawl the URL
+	result := cc.crawlSingleConcurrent(job.URL, job.Depth)
+
+	// Send result to collector
+	select {
+	case cc.results <- result:
+	case <-cc.ctx.Done():
+		return
+	}
+
+	// If successful, add new links to job queue
+	if result.Error == nil {
+		cc.addLinksToQueue(result.Links, job.Depth)
+	}
+
+	// Update max depth reached
+	cc.mu.Lock()
+	if job.Depth > cc.stats.MaxDepthReached {
+		cc.stats.MaxDepthReached = job.Depth
+	}
+	cc.mu.Unlock()
+}
+
+// crawlSingleConcurrent crawls a single URL (thread-safe version)
+func (cc *ConcurrentCrawler) crawlSingleConcurrent(targetURL string, depth int) CrawlResult {
+	result := CrawlResult{
+		URL:       targetURL,
+		Depth:     depth,
+		FetchTime: time.Now(),
+	}
+
+	cc.logger.Debug("Fetching URL", "url", targetURL, "depth", depth)
+	startTime := time.Now()
+
+	// Fetch the page
+	response, err := cc.client.Get(cc.ctx, targetURL)
+	result.ResponseTime = time.Since(startTime)
+
+	if err != nil {
+		result.Error = fmt.Errorf("failed to fetch URL: %w", err)
+		return result
+	}
+
+	result.StatusCode = response.StatusCode()
+
+	// Check for successful response
+	if response.StatusCode() < 200 || response.StatusCode() >= 400 {
+		result.Error = fmt.Errorf("HTTP error: %d", response.StatusCode())
+		return result
+	}
+
+	// Extract links from the page
+	htmlContent := response.String()
+	if cc.sameDomain {
+		result.Links, err = cc.parser.ExtractSameDomainLinks(targetURL, htmlContent)
+	} else {
+		result.Links, err = cc.parser.ExtractLinks(targetURL, htmlContent)
+	}
+
+	if err != nil {
+		result.Error = fmt.Errorf("failed to extract links: %w", err)
+		return result
+	}
+
+	cc.logger.Debug("Extracted links", "url", targetURL, "link_count", len(result.Links))
+	return result
+}
+
+// addLinksToQueue adds extracted links to the job queue
+func (cc *ConcurrentCrawler) addLinksToQueue(links []string, currentDepth int) {
+	for _, link := range links {
+		// Skip if already visited
+		if _, loaded := cc.visited.LoadOrStore(link, true); loaded {
+			continue
+		}
+
+		// Apply same-domain filtering if enabled
+		if cc.sameDomain {
+			isSame, err := url.IsSameDomain(cc.baseDomain, link)
+			if err != nil || !isSame {
+				cc.logger.Debug("Skipping external domain link", "link", link)
+				continue
+			}
+		}
+
+		// Add to job queue
+		cc.addJob(CrawlJob{URL: link, Depth: currentDepth + 1})
+
+		cc.mu.Lock()
+		cc.stats.TotalURLs++
+		cc.mu.Unlock()
+
+		cc.logger.Debug("Added URL to queue", "url", link, "depth", currentDepth+1)
+	}
+}
+
+// addJob adds a job to the job queue with proper synchronization
+func (cc *ConcurrentCrawler) addJob(job CrawlJob) {
+	cc.activeJobsMu.Lock()
+	cc.activeJobs++
+	cc.activeJobsMu.Unlock()
+
+	select {
+	case cc.jobs <- job:
+		// Job added successfully
+	case <-cc.ctx.Done():
+		cc.activeJobsMu.Lock()
+		cc.activeJobs--
+		cc.activeJobsMu.Unlock()
+		return
+	}
+}
+
+// resultCollector collects results from workers
+func (cc *ConcurrentCrawler) resultCollector() {
+	for result := range cc.results {
+		cc.mu.Lock()
+		cc.resultsList = append(cc.resultsList, result)
+
+		if result.Error != nil {
+			cc.stats.FailedURLs++
+			cc.logger.Warn("Failed to crawl URL", "url", result.URL, "error", result.Error)
+		} else {
+			cc.stats.CrawledURLs++
+			cc.logger.Info("Successfully crawled URL", "url", result.URL, "links_found", len(result.Links))
+		}
+		cc.mu.Unlock()
+	}
+}
+
+// Cancel cancels the crawling operation
+func (cc *ConcurrentCrawler) Cancel() {
+	cc.cancel()
+}
+
+// GetResults returns the crawling results (thread-safe)
+func (cc *ConcurrentCrawler) GetResults() []CrawlResult {
+	cc.mu.RLock()
+	defer cc.mu.RUnlock()
+	results := make([]CrawlResult, len(cc.resultsList))
+	copy(results, cc.resultsList)
+	return results
+}
+
+// GetStats returns the crawling statistics (thread-safe)
+func (cc *ConcurrentCrawler) GetStats() *CrawlStats {
+	cc.mu.RLock()
+	defer cc.mu.RUnlock()
+	statsCopy := cc.stats
+	return &statsCopy
 }
