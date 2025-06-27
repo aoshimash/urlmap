@@ -32,7 +32,7 @@ func SetupTestEnvironment(t *testing.T) *TestEnvironment {
 	server := CreateBasicTestServer()
 
 	// Build binary
-	binaryPath := BuildTestBinary(t, tempDir)
+	binaryPath := BuildTestBinary(t)
 
 	return &TestEnvironment{
 		Server:     server,
@@ -114,25 +114,51 @@ func CreateBasicTestServer() *httptest.Server {
 	return httptest.NewServer(mux)
 }
 
-// BuildTestBinary builds the crawld binary for testing
-func BuildTestBinary(t *testing.T, tempDir string) string {
-	// Determine the correct path to the main.go file
+// findProjectRoot finds the project root directory
+func findProjectRoot() (string, error) {
+	// Get the current file's directory
 	_, filename, _, _ := runtime.Caller(0)
-	projectRoot := filepath.Join(filepath.Dir(filename), "..", "..")
-	mainGoPath := filepath.Join(projectRoot, "cmd", "crawld")
+	currentDir := filepath.Dir(filename)
+
+	// Walk up the directory tree to find go.mod
+	for {
+		if _, err := os.Stat(filepath.Join(currentDir, "go.mod")); err == nil {
+			return currentDir, nil
+		}
+
+		parent := filepath.Dir(currentDir)
+		if parent == currentDir {
+			return "", fmt.Errorf("could not find project root (go.mod not found)")
+		}
+		currentDir = parent
+	}
+}
+
+// BuildTestBinary builds the urlmap binary for testing
+func BuildTestBinary(t *testing.T) string {
+	tempDir := t.TempDir()
+	binaryPath := filepath.Join(tempDir, "urlmap")
+
+	// Change to project root
+	projectRoot, err := findProjectRoot()
+	if err != nil {
+		t.Fatalf("Failed to find project root: %v", err)
+	}
+
+	oldDir, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Failed to get current directory: %v", err)
+	}
+	defer os.Chdir(oldDir)
+
+	if err := os.Chdir(projectRoot); err != nil {
+		t.Fatalf("Failed to change to project root: %v", err)
+	}
 
 	// Build the binary
-	binaryName := "crawld-test"
-	if runtime.GOOS == "windows" {
-		binaryName += ".exe"
-	}
-	binaryPath := filepath.Join(tempDir, binaryName)
-
-	cmd := exec.Command("go", "build", "-o", binaryPath, mainGoPath)
-	cmd.Dir = projectRoot
-
+	cmd := exec.Command("go", "build", "-o", binaryPath, "./cmd/urlmap")
 	if err := cmd.Run(); err != nil {
-		t.Fatalf("Failed to build crawld binary: %v", err)
+		t.Fatalf("Failed to build urlmap binary: %v", err)
 	}
 
 	return binaryPath

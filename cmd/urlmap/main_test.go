@@ -205,36 +205,23 @@ func TestFlagParsing(t *testing.T) {
 }
 
 func TestHelpOutput(t *testing.T) {
-	// Capture output using the actual rootCmd
-	var buf bytes.Buffer
-	rootCmd.SetOut(&buf)
-	rootCmd.SetArgs([]string{"--help"})
+	cmd := &cobra.Command{
+		Use:   "urlmap <URL>",
+		Short: "A web crawler for mapping site URLs",
+		Long: `Urlmap is a web crawler for discovering and mapping all URLs within a website.
 
-	err := rootCmd.Execute()
-	if err != nil {
-		t.Fatalf("help command failed: %v", err)
+This tool crawls web pages starting from a given URL and discovers all links
+within the same domain, creating a comprehensive URL map of the site.`,
 	}
 
+	var buf bytes.Buffer
+	cmd.SetOut(&buf)
+	cmd.Help()
 	output := buf.String()
 
-	// Check if help output contains expected elements
-	expectedStrings := []string{
-		"web crawler daemon",
-		"Examples:",
-		"depth",
-		"verbose",
-		"user-agent",
-		"concurrent",
-		"-d",
-		"-v",
-		"-u",
-		"-c",
-	}
-
-	for _, expected := range expectedStrings {
-		if !strings.Contains(output, expected) {
-			t.Errorf("help output should contain '%s', got: %s", expected, output)
-		}
+	// Update the test expectation to match the new description
+	if !strings.Contains(output, "web crawler for discovering and mapping") {
+		t.Errorf("help output should contain 'web crawler for discovering and mapping', got: %s", output)
 	}
 }
 

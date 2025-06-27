@@ -97,18 +97,18 @@ jobs:
 
       - name: Build test image
         run: |
-          docker build -t crawld:test .
+          docker build -t urlmap:test .
 
       - name: Test container functionality
         run: |
           # Test help command
-          docker run --rm crawld:test --help
+          docker run --rm urlmap:test --help
 
           # Test version command
-          docker run --rm crawld:test version
+          docker run --rm urlmap:test version
 
           # Test invalid URL handling
-          if docker run --rm crawld:test invalid-url 2>/dev/null; then
+          if docker run --rm urlmap:test invalid-url 2>/dev/null; then
             echo "Expected failure for invalid URL"
             exit 1
           fi
@@ -117,7 +117,7 @@ jobs:
       - name: Test container security
         run: |
           # Check if running as non-root user
-          USER_ID=$(docker run --rm crawld:test sh -c 'id -u' 2>/dev/null || echo "65532")
+          USER_ID=$(docker run --rm urlmap:test sh -c 'id -u' 2>/dev/null || echo "65532")
           if [ "$USER_ID" = "0" ]; then
             echo "Container is running as root - security violation"
             exit 1
@@ -126,6 +126,6 @@ jobs:
 
       - name: Check image size
         run: |
-          SIZE=$(docker images crawld:test --format "table {{.Size}}" | tail -n 1)
+          SIZE=$(docker images urlmap:test --format "table {{.Size}}" | tail -n 1)
           echo "Image size: $SIZE"
           # Log the size for monitoring (could add size limits if needed)

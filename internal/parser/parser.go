@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
-	"github.com/aoshimash/crawld/internal/url"
+	"github.com/aoshimash/urlmap/internal/url"
 )
 
 // LinkExtractor provides functionality to extract and filter links from HTML content

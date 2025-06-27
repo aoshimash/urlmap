@@ -1,10 +1,10 @@
 # Release Process
 
-This document describes the automated release process for crawld and how to create new releases.
+This document describes the automated release process for urlmap and how to create new releases.
 
-## Overview
+## 🚀 Automated Release Process
 
-crawld uses an automated release process that:
+urlmap uses an automated release process that:
 - Builds multi-platform binaries on git tag pushes
 - Creates compressed archives with checksums
 - Generates automatic release notes
@@ -16,11 +16,11 @@ The release process builds binaries for the following platforms:
 
 | Platform | Architecture | Binary Name | Archive Format |
 |----------|-------------|-------------|----------------|
-| Linux | amd64 | `crawld-linux-amd64` | tar.gz |
-| Linux | arm64 | `crawld-linux-arm64` | tar.gz |
-| macOS | amd64 (Intel) | `crawld-darwin-amd64` | tar.gz |
-| macOS | arm64 (Apple Silicon) | `crawld-darwin-arm64` | tar.gz |
-| Windows | amd64 | `crawld-windows-amd64.exe` | zip |
+| Linux | amd64 | `urlmap-linux-amd64` | tar.gz |
+| Linux | arm64 | `urlmap-linux-arm64` | tar.gz |
+| macOS | amd64 (Intel) | `urlmap-darwin-amd64` | tar.gz |
+| macOS | arm64 (Apple Silicon) | `urlmap-darwin-arm64` | tar.gz |
+| Windows | amd64 | `urlmap-windows-amd64.exe` | zip |
 
 ## Creating a Release
 
@@ -51,21 +51,21 @@ git push origin v1.0.0
 
 ### 3. Monitor the Release Process
 
-1. Go to the [Actions tab](https://github.com/aoshimash/crawld/actions) to monitor the build
+1. Go to the [Actions tab](https://github.com/aoshimash/urlmap/actions) to monitor the build
 2. The release workflow will:
    - Build binaries for all platforms
    - Create compressed archives
    - Generate checksums
    - Create a GitHub Release with assets
-3. Check the [Releases page](https://github.com/aoshimash/crawld/releases) when complete
+3. Check the [Releases page](https://github.com/aoshimash/urlmap/releases) when complete
 
 ## Version Information
 
 Each binary includes build-time version information accessible via the `version` command:
 
 ```bash
-$ crawld version
-crawld version v1.0.0
+$ urlmap version
+urlmap version v1.0.0
 commit: abc1234
 built: 2024-01-01T12:00:00Z
 ```
@@ -118,8 +118,8 @@ Each release includes a `checksums.txt` file for verifying binary integrity:
 
 ```bash
 # Download and verify a binary
-curl -L -O https://github.com/aoshimash/crawld/releases/download/v1.0.0/crawld-linux-amd64.tar.gz
-curl -L -O https://github.com/aoshimash/crawld/releases/download/v1.0.0/checksums.txt
+curl -L -O https://github.com/aoshimash/urlmap/releases/download/v1.0.0/urlmap-linux-amd64.tar.gz
+curl -L -O https://github.com/aoshimash/urlmap/releases/download/v1.0.0/checksums.txt
 
 # Verify checksum
 sha256sum -c checksums.txt --ignore-missing
@@ -129,7 +129,7 @@ sha256sum -c checksums.txt --ignore-missing
 
 ### Release Build Fails
 
-1. Check the [Actions tab](https://github.com/aoshimash/crawld/actions) for error details
+1. Check the [Actions tab](https://github.com/aoshimash/urlmap/actions) for error details
 2. Common issues:
    - Build failures due to code issues
    - Missing dependencies
@@ -150,7 +150,7 @@ The release workflow requires:
 
 ## Semantic Versioning
 
-crawld follows [Semantic Versioning](https://semver.org/):
+urlmap follows [Semantic Versioning](https://semver.org/):
 
 - **MAJOR** version (X.0.0): Incompatible API changes
 - **MINOR** version (0.X.0): New features (backward compatible)
@@ -159,7 +159,4 @@ crawld follows [Semantic Versioning](https://semver.org/):
 
 Examples:
 - `v1.0.0` - First stable release
-- `v1.1.0` - New features added
-- `v1.1.1` - Bug fixes
-- `v2.0.0` - Breaking changes
-- `v1.2.0-beta.1` - Pre-release version
+- `v1.1.0`

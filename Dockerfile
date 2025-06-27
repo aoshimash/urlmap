@@ -1,17 +1,17 @@
-# Build stage - Use Go official image matching go.mod version
-FROM golang:1.24 AS builder
+# Build stage
+FROM golang:1.24-alpine AS builder
 
-# Add metadata
-LABEL org.opencontainers.image.source="https://github.com/aoshimash/crawld"
-LABEL org.opencontainers.image.description="Web crawler daemon"
+LABEL org.opencontainers.image.source="https://github.com/aoshimash/urlmap"
+LABEL org.opencontainers.image.description="A fast and efficient web crawler CLI tool for discovering URLs within a domain"
 LABEL org.opencontainers.image.licenses="MIT"
 
-# Install ca-certificates for HTTPS requests
-RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+# Install git for go modules
+RUN apk add --no-cache git
 
+# Set working directory
 WORKDIR /app
 
-# Copy go mod files first for better caching
+# Copy go mod and sum files
 COPY go.mod go.sum ./
 
 # Download dependencies
@@ -21,29 +21,28 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo \
-    -ldflags="-s -w -X main.version=docker -X main.commit=$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown') -X main.date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-    -o crawld ./cmd/crawld
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -a -installsuffix cgo \
+    -ldflags '-extldflags "-static"' \
+    -o urlmap ./cmd/urlmap
 
-# Runtime stage - Use distroless
-FROM gcr.io/distroless/static-debian11:nonroot
+# Final stage
+FROM alpine:latest
 
-# Add metadata
-LABEL org.opencontainers.image.source="https://github.com/aoshimash/crawld"
-LABEL org.opencontainers.image.description="Web crawler daemon"
+LABEL org.opencontainers.image.source="https://github.com/aoshimash/urlmap"
+LABEL org.opencontainers.image.description="A fast and efficient web crawler CLI tool for discovering URLs within a domain"
 LABEL org.opencontainers.image.licenses="MIT"
 
-# Copy CA certificates from builder
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+# Install ca-certificates for HTTPS requests
+RUN apk --no-cache add ca-certificates
 
-# Copy the binary from builder stage
-COPY --from=builder /app/crawld /usr/local/bin/crawld
+WORKDIR /root/
 
-# Use non-root user (already set by distroless:nonroot)
-USER nonroot:nonroot
+# Copy the binary from builder
+COPY --from=builder /app/urlmap /usr/local/bin/urlmap
 
-# Set entrypoint
-ENTRYPOINT ["/usr/local/bin/crawld"]
+# Make sure binary is executable
+RUN chmod +x /usr/local/bin/urlmap
 
-# Default help command
-CMD ["--help"]
+# Use the binary as entrypoint
+ENTRYPOINT ["/usr/local/bin/urlmap"]

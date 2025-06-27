@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aoshimash/crawld/internal/progress"
+	"github.com/aoshimash/urlmap/internal/progress"
 )
 
 func TestMain(m *testing.M) {

@@ -202,16 +202,20 @@ func createComplexTestServer() (*httptest.Server, *ServerStats) {
 	return httptest.NewServer(mux), stats
 }
 
-func buildCrawldBinary(t *testing.T) string {
-	// Build the crawld binary
-	binaryPath := filepath.Join(os.TempDir(), "crawld-e2e-test")
-	cmd := exec.Command("go", "build", "-o", binaryPath, "../../cmd/crawld")
+func setupE2ETest(t *testing.T) (string, func()) {
+	// Create temporary directory for test
+	tempDir := t.TempDir()
 
+	// Build the urlmap binary
+	binaryPath := filepath.Join(tempDir, "urlmap")
+	cmd := exec.Command("go", "build", "-o", binaryPath, "./cmd/urlmap")
 	if err := cmd.Run(); err != nil {
-		t.Fatalf("Failed to build crawld binary: %v", err)
+		t.Fatalf("Failed to build urlmap binary: %v", err)
 	}
 
-	return binaryPath
+	return binaryPath, func() {
+		os.Remove(binaryPath)
+	}
 }
 
 func TestE2E_CompleteWorkflow(t *testing.T) {
@@ -220,8 +224,8 @@ func TestE2E_CompleteWorkflow(t *testing.T) {
 	defer server.Close()
 
 	// Build binary
-	binaryPath := buildCrawldBinary(t)
-	defer os.Remove(binaryPath)
+	binaryPath, cleanup := setupE2ETest(t)
+	defer cleanup()
 
 	// Run complete crawl with various flags
 	cmd := exec.Command(binaryPath,
@@ -271,8 +275,8 @@ func TestE2E_ConcurrencyStressTest(t *testing.T) {
 	defer server.Close()
 
 	// Build binary
-	binaryPath := buildCrawldBinary(t)
-	defer os.Remove(binaryPath)
+	binaryPath, cleanup := setupE2ETest(t)
+	defer cleanup()
 
 	// Run stress test with high concurrency
 	cmd := exec.Command(binaryPath,
@@ -310,8 +314,8 @@ func TestE2E_ErrorHandling(t *testing.T) {
 	defer server.Close()
 
 	// Build binary
-	binaryPath := buildCrawldBinary(t)
-	defer os.Remove(binaryPath)
+	binaryPath, cleanup := setupE2ETest(t)
+	defer cleanup()
 
 	// Test with mixed success/error scenarios
 	// Add error URLs to the server by creating a custom HTML page
@@ -378,8 +382,8 @@ func TestE2E_OutputFormatValidation(t *testing.T) {
 	defer server.Close()
 
 	// Build binary
-	binaryPath := buildCrawldBinary(t)
-	defer os.Remove(binaryPath)
+	binaryPath, cleanup := setupE2ETest(t)
+	defer cleanup()
 
 	// Run crawl
 	cmd := exec.Command(binaryPath,
@@ -452,8 +456,8 @@ func TestE2E_SignalHandling(t *testing.T) {
 	defer server.Close()
 
 	// Build binary
-	binaryPath := buildCrawldBinary(t)
-	defer os.Remove(binaryPath)
+	binaryPath, cleanup := setupE2ETest(t)
+	defer cleanup()
 
 	// Start crawl process
 	cmd := exec.Command(binaryPath,

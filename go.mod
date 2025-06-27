@@ -1,4 +1,4 @@
-module github.com/aoshimash/crawld
+module github.com/aoshimash/urlmap
 
 go 1.24.4
 

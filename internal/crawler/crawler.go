@@ -7,10 +7,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aoshimash/crawld/internal/client"
-	"github.com/aoshimash/crawld/internal/parser"
-	"github.com/aoshimash/crawld/internal/progress"
-	"github.com/aoshimash/crawld/internal/url"
+	"github.com/aoshimash/urlmap/internal/client"
+	"github.com/aoshimash/urlmap/internal/parser"
+	"github.com/aoshimash/urlmap/internal/progress"
+	"github.com/aoshimash/urlmap/internal/url"
 )
 
 // CrawlJob represents a job to be processed by a worker

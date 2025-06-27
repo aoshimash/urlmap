@@ -33,7 +33,7 @@
 ```bash
 # Example testing steps
 go test ./...
-go run ./cmd/crawld --help
+go run ./cmd/urlmap --help
 ```
 
 ## 📋 Checklist

@@ -1,11 +1,11 @@
-# crawld
+# urlmap
 
-[![CI](https://github.com/aoshimash/crawld/workflows/CI/badge.svg)](https://github.com/aoshimash/crawld/actions/workflows/ci.yml)
-[![Docker](https://github.com/aoshimash/crawld/workflows/Docker%20Build%20and%20Publish/badge.svg)](https://github.com/aoshimash/crawld/actions/workflows/docker.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/aoshimash/crawld)](https://goreportcard.com/report/github.com/aoshimash/crawld)
-[![License](https://img.shields.io/github/license/aoshimash/crawld)](LICENSE)
+[![CI](https://github.com/aoshimash/urlmap/workflows/CI/badge.svg)](https://github.com/aoshimash/urlmap/actions/workflows/ci.yml)
+[![Docker](https://github.com/aoshimash/urlmap/workflows/Docker%20Build%20and%20Publish/badge.svg)](https://github.com/aoshimash/urlmap/actions/workflows/docker.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/aoshimash/urlmap)](https://goreportcard.com/report/github.com/aoshimash/urlmap)
+[![License](https://img.shields.io/github/license/aoshimash/urlmap)](LICENSE)
 
-A fast and efficient web crawler CLI tool for discovering links within a domain. Built with Go for high performance and concurrent crawling.
+A fast and efficient web crawler CLI tool for discovering and mapping URLs within a website. Built with Go for high performance and concurrent crawling.
 
 ## 🚀 Features
 
@@ -24,42 +24,42 @@ A fast and efficient web crawler CLI tool for discovering links within a domain.
 
 ### Binary Download
 
-Download the latest binary from the [releases page](https://github.com/aoshimash/crawld/releases):
+Download the latest binary from the [releases page](https://github.com/aoshimash/urlmap/releases):
 
 #### Linux (x86_64)
 ```bash
-curl -L -o crawld.tar.gz https://github.com/aoshimash/crawld/releases/latest/download/crawld-linux-amd64.tar.gz
-tar -xzf crawld.tar.gz
-chmod +x crawld
-sudo mv crawld /usr/local/bin/
+curl -L -o urlmap.tar.gz https://github.com/aoshimash/urlmap/releases/latest/download/urlmap-linux-amd64.tar.gz
+tar -xzf urlmap.tar.gz
+chmod +x urlmap
+sudo mv urlmap /usr/local/bin/
 ```
 
 #### Linux (ARM64)
 ```bash
-curl -L -o crawld.tar.gz https://github.com/aoshimash/crawld/releases/latest/download/crawld-linux-arm64.tar.gz
-tar -xzf crawld.tar.gz
-chmod +x crawld
-sudo mv crawld /usr/local/bin/
+curl -L -o urlmap.tar.gz https://github.com/aoshimash/urlmap/releases/latest/download/urlmap-linux-arm64.tar.gz
+tar -xzf urlmap.tar.gz
+chmod +x urlmap
+sudo mv urlmap /usr/local/bin/
 ```
 
 #### macOS (Intel)
 ```bash
-curl -L -o crawld.tar.gz https://github.com/aoshimash/crawld/releases/latest/download/crawld-darwin-amd64.tar.gz
-tar -xzf crawld.tar.gz
-chmod +x crawld
-sudo mv crawld /usr/local/bin/
+curl -L -o urlmap.tar.gz https://github.com/aoshimash/urlmap/releases/latest/download/urlmap-darwin-amd64.tar.gz
+tar -xzf urlmap.tar.gz
+chmod +x urlmap
+sudo mv urlmap /usr/local/bin/
 ```
 
 #### macOS (Apple Silicon)
 ```bash
-curl -L -o crawld.tar.gz https://github.com/aoshimash/crawld/releases/latest/download/crawld-darwin-arm64.tar.gz
-tar -xzf crawld.tar.gz
-chmod +x crawld
-sudo mv crawld /usr/local/bin/
+curl -L -o urlmap.tar.gz https://github.com/aoshimash/urlmap/releases/latest/download/urlmap-darwin-arm64.tar.gz
+tar -xzf urlmap.tar.gz
+chmod +x urlmap
+sudo mv urlmap /usr/local/bin/
 ```
 
 #### Windows
-Download `crawld-windows-amd64.zip` from the releases page and extract the executable.
+Download `urlmap-windows-amd64.zip` from the releases page and extract the executable.
 
 ### Docker
 
@@ -67,10 +67,10 @@ Run with Docker without installation:
 
 ```bash
 # Pull from GitHub Container Registry
-docker pull ghcr.io/aoshimash/crawld:latest
+docker pull ghcr.io/aoshimash/urlmap:latest
 
 # Basic usage
-docker run --rm ghcr.io/aoshimash/crawld:latest https://example.com
+docker run --rm ghcr.io/aoshimash/urlmap:latest https://example.com
 ```
 
 ### From Source
@@ -79,14 +79,14 @@ Requirements: Go 1.21 or higher
 
 ```bash
 # Clone the repository
-git clone https://github.com/aoshimash/crawld.git
-cd crawld
+git clone https://github.com/aoshimash/urlmap.git
+cd urlmap
 
 # Build the application
-go build -o crawld ./cmd/crawld
+go build -o urlmap ./cmd/urlmap
 
 # Install globally (optional)
-sudo mv crawld /usr/local/bin/
+sudo mv urlmap /usr/local/bin/
 ```
 
 ## 🎯 Usage
@@ -95,54 +95,54 @@ sudo mv crawld /usr/local/bin/
 
 ```bash
 # Crawl a website with default settings
-crawld https://example.com
+urlmap https://example.com
 
 # Check version
-crawld version
+urlmap version
 
 # Get help
-crawld --help
+urlmap --help
 ```
 
 ### Advanced Options
 
 ```bash
 # Limit crawl depth to 3 levels
-crawld --depth 3 https://example.com
+urlmap --depth 3 https://example.com
 
 # Use 20 concurrent workers for faster crawling
-crawld --concurrent 20 https://example.com
+urlmap --concurrent 20 https://example.com
 
 # Enable verbose logging
-crawld --verbose https://example.com
+urlmap --verbose https://example.com
 
 # Custom user agent
-crawld --user-agent "MyBot/1.0" https://example.com
+urlmap --user-agent "MyBot/1.0" https://example.com
 
 # Rate limiting (5 requests per second)
-crawld --rate-limit 5 https://example.com
+urlmap --rate-limit 5 https://example.com
 
 # Disable progress indicators
-crawld --progress=false https://example.com
+urlmap --progress=false https://example.com
 
 # Combined options
-crawld --depth 5 --concurrent 15 --verbose --rate-limit 2 https://example.com
+urlmap --depth 5 --concurrent 15 --verbose --rate-limit 2 https://example.com
 ```
 
 ### Docker Usage
 
 ```bash
 # Basic crawling
-docker run --rm ghcr.io/aoshimash/crawld:latest https://example.com
+docker run --rm ghcr.io/aoshimash/urlmap:latest https://example.com
 
 # With options
-docker run --rm ghcr.io/aoshimash/crawld:latest --depth 3 --concurrent 20 https://example.com
+docker run --rm ghcr.io/aoshimash/urlmap:latest --depth 3 --concurrent 20 https://example.com
 
 # Save output to file
-docker run --rm ghcr.io/aoshimash/crawld:latest https://example.com > urls.txt
+docker run --rm ghcr.io/aoshimash/urlmap:latest https://example.com > urls.txt
 
 # Interactive mode with shell access
-docker run -it --rm ghcr.io/aoshimash/crawld:latest /bin/sh
+docker run -it --rm ghcr.io/aoshimash/urlmap:latest /bin/sh
 ```
 
 ## 🔧 Command Line Options
@@ -152,7 +152,7 @@ docker run -it --rm ghcr.io/aoshimash/crawld:latest /bin/sh
 | `--depth` | `-d` | 0 (unlimited) | Maximum crawl depth |
 | `--concurrent` | `-c` | 10 | Number of concurrent workers |
 | `--verbose` | `-v` | false | Enable verbose logging |
-| `--user-agent` | `-u` | crawld/1.0.0 | Custom User-Agent string |
+| `--user-agent` | `-u` | urlmap/1.0.0 | Custom User-Agent string |
 | `--progress` | `-p` | true | Show progress indicators |
 | `--rate-limit` | `-r` | 0 (no limit) | Rate limit (requests per second) |
 | `--help` | `-h` | - | Show help message |
@@ -163,7 +163,7 @@ docker run -it --rm ghcr.io/aoshimash/crawld:latest /bin/sh
 
 ```bash
 # Crawl a simple website
-crawld https://example.com
+urlmap https://example.com
 ```
 
 Output:
@@ -178,47 +178,47 @@ https://example.com/products
 
 ```bash
 # Only crawl up to 2 levels deep
-crawld --depth 2 https://blog.example.com
+urlmap --depth 2 https://blog.example.com
 ```
 
 ### High-Performance Crawling
 
 ```bash
 # Use 50 concurrent workers for large sites
-crawld --concurrent 50 --verbose https://large-site.example.com
+urlmap --concurrent 50 --verbose https://large-site.example.com
 ```
 
 ### Respectful Crawling
 
 ```bash
 # Limit to 1 request per second with custom user agent
-crawld --rate-limit 1 --user-agent "Research Bot 1.0 (contact@example.com)" https://example.com
+urlmap --rate-limit 1 --user-agent "Research Bot 1.0 (contact@example.com)" https://example.com
 ```
 
 ### Save Results to File
 
 ```bash
 # Save URLs to a file
-crawld https://example.com > discovered_urls.txt
+urlmap https://example.com > discovered_urls.txt
 
 # Save with timestamps and logs
-crawld --verbose https://example.com > urls.txt 2> crawl.log
+urlmap --verbose https://example.com > urls.txt 2> crawl.log
 ```
 
 ### Processing Large Sites
 
 ```bash
 # Optimized for large sites with progress tracking
-crawld --depth 5 --concurrent 30 --rate-limit 10 --verbose https://large-site.com
+urlmap --depth 5 --concurrent 30 --rate-limit 10 --verbose https://large-site.com
 ```
 
 ## 🏗 Architecture
 
-crawld follows a modular architecture for maintainability and extensibility:
+urlmap follows a modular architecture for maintainability and extensibility:
 
 ```
-crawld/
-├── cmd/crawld/          # CLI application entry point
+urlmap/
+├── cmd/urlmap/          # CLI application entry point
 ├── internal/
 │   ├── client/          # HTTP client with retry logic
 │   ├── config/          # Configuration and logging setup
@@ -240,7 +240,7 @@ crawld/
 
 ## ⚡ Performance
 
-crawld is optimized for performance with the following characteristics:
+urlmap is optimized for performance with the following characteristics:
 
 ### Benchmarks
 
@@ -275,9 +275,9 @@ Performance varies based on:
 #### Permission Denied
 ```bash
 # Error: permission denied
-sudo chmod +x crawld
+sudo chmod +x urlmap
 # Or install to user directory
-mv crawld ~/.local/bin/
+mv urlmap ~/.local/bin/
 ```
 
 #### DNS Resolution Failures
@@ -289,22 +289,22 @@ curl -I https://example.com
 nslookup example.com
 
 # Use verbose mode for debugging
-crawld --verbose https://example.com
+urlmap --verbose https://example.com
 ```
 
 #### Rate Limiting / 429 Errors
 ```bash
 # Reduce concurrent workers and add rate limiting
-crawld --concurrent 5 --rate-limit 1 https://example.com
+urlmap --concurrent 5 --rate-limit 1 https://example.com
 ```
 
 #### Memory Issues with Large Sites
 ```bash
 # Reduce concurrent workers
-crawld --concurrent 5 --depth 3 https://large-site.com
+urlmap --concurrent 5 --depth 3 https://large-site.com
 
 # Monitor memory usage
-crawld --verbose https://example.com 2>&1 | grep -i memory
+urlmap --verbose https://example.com 2>&1 | grep -i memory
 ```
 
 #### SSL/TLS Certificate Errors
@@ -313,7 +313,7 @@ crawld --verbose https://example.com 2>&1 | grep -i memory
 curl -I https://example.com
 
 # For development/testing only (not recommended for production)
-# Currently not configurable - crawld validates all certificates
+# Currently not configurable - urlmap validates all certificates
 ```
 
 ### Debugging
@@ -321,7 +321,7 @@ curl -I https://example.com
 Enable verbose logging to troubleshoot issues:
 
 ```bash
-crawld --verbose https://example.com 2> debug.log
+urlmap --verbose https://example.com 2> debug.log
 ```
 
 Log levels include:
@@ -341,7 +341,7 @@ If crawling is slow:
 
 ```bash
 # Performance testing command
-time crawld --depth 2 --concurrent 20 https://example.com > /dev/null
+time urlmap --depth 2 --concurrent 20 https://example.com > /dev/null
 ```
 
 ## 🤝 Contributing
@@ -352,8 +352,8 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 
 ```bash
 # Clone the repository
-git clone https://github.com/aoshimash/crawld.git
-cd crawld
+git clone https://github.com/aoshimash/urlmap.git
+cd urlmap
 
 # Install dependencies
 go mod download
@@ -366,7 +366,7 @@ go vet ./...
 golangci-lint run
 
 # Build for development
-go build -o crawld ./cmd/crawld
+go build -o urlmap ./cmd/urlmap
 ```
 
 ### Project Structure
@@ -375,7 +375,7 @@ See [Architecture Documentation](docs/ARCHITECTURE.md) for detailed information 
 
 ## 📚 Dependencies
 
-crawld uses the following high-quality Go libraries:
+urlmap uses the following high-quality Go libraries:
 
 - **[Cobra](https://github.com/spf13/cobra)** - Modern CLI framework
 - **[Resty](https://github.com/go-resty/resty)** - HTTP client library
@@ -383,11 +383,11 @@ crawld uses the following high-quality Go libraries:
 
 ## 📊 Monitoring and Statistics
 
-crawld provides detailed statistics during and after crawling:
+urlmap provides detailed statistics during and after crawling:
 
 ```bash
 # Example output with statistics
-crawld --verbose https://example.com
+urlmap --verbose https://example.com
 ```
 
 Statistics include:
@@ -400,7 +400,7 @@ Statistics include:
 
 ## 🔒 Security Considerations
 
-- crawld respects robots.txt by default behavior of underlying HTTP libraries
+- urlmap respects robots.txt by default behavior of underlying HTTP libraries
 - Uses safe HTML parsing to prevent XSS in link extraction
 - Validates all URLs to prevent malicious redirects
 - Implements proper timeout handling to prevent hanging requests
@@ -412,8 +412,8 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## 🙋‍♀️ Support
 
-- **Bug Reports**: [GitHub Issues](https://github.com/aoshimash/crawld/issues)
-- **Feature Requests**: [GitHub Discussions](https://github.com/aoshimash/crawld/discussions)
+- **Bug Reports**: [GitHub Issues](https://github.com/aoshimash/urlmap/issues)
+- **Feature Requests**: [GitHub Discussions](https://github.com/aoshimash/urlmap/discussions)
 - **Security Issues**: Please email security issues privately
 
 ## 🗺 Roadmap
@@ -428,4 +428,4 @@ Future enhancements planned:
 
 ---
 
-**Made with ❤️ by the crawld team**
+**Made with ❤️ by the urlmap team**

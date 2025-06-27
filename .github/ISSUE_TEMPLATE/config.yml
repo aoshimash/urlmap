@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
-  - name: 🤔 Question or Discussion
-    url: https://github.com/aoshimash/crawld/discussions
-    about: Ask questions or discuss ideas about crawld
+  - name: 💬 Discussions
+    url: https://github.com/aoshimash/urlmap/discussions
+    about: Ask questions or discuss ideas about urlmap
   - name: 📚 Documentation
-    url: https://github.com/aoshimash/crawld/blob/main/README.md
-    about: Check the documentation and usage examples
+    url: https://github.com/aoshimash/urlmap/blob/main/README.md
+    about: Read the documentation
