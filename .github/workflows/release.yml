@@ -1,0 +1,165 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.21"
+
+      - name: Get version from tag
+        id: version
+        run: |
+          echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          echo "short_commit=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
+
+      - name: Build binaries
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          COMMIT: ${{ steps.version.outputs.short_commit }}
+          BUILD_DATE: ${{ steps.version.outputs.build_date }}
+        run: |
+          # Create bin directory
+          mkdir -p bin
+
+          # Set ldflags for version info
+          LDFLAGS="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${BUILD_DATE}"
+
+          # Linux amd64
+          echo "Building for Linux amd64..."
+          GOOS=linux GOARCH=amd64 go build -ldflags="${LDFLAGS}" -o bin/crawld-linux-amd64 ./cmd/crawld
+
+          # Linux arm64
+          echo "Building for Linux arm64..."
+          GOOS=linux GOARCH=arm64 go build -ldflags="${LDFLAGS}" -o bin/crawld-linux-arm64 ./cmd/crawld
+
+          # macOS amd64 (Intel)
+          echo "Building for macOS amd64..."
+          GOOS=darwin GOARCH=amd64 go build -ldflags="${LDFLAGS}" -o bin/crawld-darwin-amd64 ./cmd/crawld
+
+          # macOS arm64 (Apple Silicon)
+          echo "Building for macOS arm64..."
+          GOOS=darwin GOARCH=arm64 go build -ldflags="${LDFLAGS}" -o bin/crawld-darwin-arm64 ./cmd/crawld
+
+          # Windows amd64
+          echo "Building for Windows amd64..."
+          GOOS=windows GOARCH=amd64 go build -ldflags="${LDFLAGS}" -o bin/crawld-windows-amd64.exe ./cmd/crawld
+
+      - name: Create compressed archives
+        run: |
+          cd bin
+
+          # Create tar.gz archives for Unix systems
+          tar -czf crawld-linux-amd64.tar.gz crawld-linux-amd64
+          tar -czf crawld-linux-arm64.tar.gz crawld-linux-arm64
+          tar -czf crawld-darwin-amd64.tar.gz crawld-darwin-amd64
+          tar -czf crawld-darwin-arm64.tar.gz crawld-darwin-arm64
+
+          # Create zip archive for Windows
+          zip crawld-windows-amd64.zip crawld-windows-amd64.exe
+
+      - name: Generate checksums
+        run: |
+          cd bin
+          sha256sum *.tar.gz *.zip > checksums.txt
+          cat checksums.txt
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          # Get the tag message or generate from commits since last tag
+          if git tag -l --format='%(contents)' ${{ steps.version.outputs.version }} | grep -q .; then
+            # Use tag annotation if exists
+            echo "Release notes from tag annotation:"
+            git tag -l --format='%(contents)' ${{ steps.version.outputs.version }} > release_notes.txt
+          else
+            # Generate from commits since last tag
+            echo "Auto-generated release notes from commits:"
+            PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+            if [ -n "$PREVIOUS_TAG" ]; then
+              echo "## Changes since $PREVIOUS_TAG" > release_notes.txt
+              echo "" >> release_notes.txt
+              git log --pretty=format:"- %s (%h)" ${PREVIOUS_TAG}..HEAD >> release_notes.txt
+            else
+              echo "## Initial Release" > release_notes.txt
+              echo "" >> release_notes.txt
+              echo "This is the first release of crawld." >> release_notes.txt
+            fi
+          fi
+
+          echo "" >> release_notes.txt
+          echo "## Installation" >> release_notes.txt
+          echo "" >> release_notes.txt
+          echo "### Download pre-built binaries:" >> release_notes.txt
+          echo "" >> release_notes.txt
+          echo "**Linux (amd64):**" >> release_notes.txt
+          echo '```bash' >> release_notes.txt
+          echo "curl -L https://github.com/aoshimash/crawld/releases/download/${{ steps.version.outputs.version }}/crawld-linux-amd64.tar.gz | tar -xz" >> release_notes.txt
+          echo '```' >> release_notes.txt
+          echo "" >> release_notes.txt
+          echo "**macOS (Apple Silicon):**" >> release_notes.txt
+          echo '```bash' >> release_notes.txt
+          echo "curl -L https://github.com/aoshimash/crawld/releases/download/${{ steps.version.outputs.version }}/crawld-darwin-arm64.tar.gz | tar -xz" >> release_notes.txt
+          echo '```' >> release_notes.txt
+          echo "" >> release_notes.txt
+          echo "**Windows:**" >> release_notes.txt
+          echo "Download and extract \`crawld-windows-amd64.zip\`" >> release_notes.txt
+          echo "" >> release_notes.txt
+          echo "### Verify checksums:" >> release_notes.txt
+          echo '```bash' >> release_notes.txt
+          echo "curl -L https://github.com/aoshimash/crawld/releases/download/${{ steps.version.outputs.version }}/checksums.txt" >> release_notes.txt
+          echo '```' >> release_notes.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: Release ${{ steps.version.outputs.version }}
+          body_path: release_notes.txt
+          files: |
+            bin/crawld-linux-amd64.tar.gz
+            bin/crawld-linux-arm64.tar.gz
+            bin/crawld-darwin-amd64.tar.gz
+            bin/crawld-darwin-arm64.tar.gz
+            bin/crawld-windows-amd64.zip
+            bin/checksums.txt
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.version, '-') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Test built binaries
+        run: |
+          # Test version output for each binary
+          echo "Testing Linux amd64 binary..."
+          file bin/crawld-linux-amd64
+
+          echo "Testing macOS amd64 binary..."
+          file bin/crawld-darwin-amd64
+
+          echo "Testing Windows binary..."
+          file bin/crawld-windows-amd64.exe
+
+          # Quick help test (using linux binary since we're on ubuntu)
+          echo "Testing help command..."
+          ./bin/crawld-linux-amd64 --help || true
+
+          echo "Testing version command..."
+          ./bin/crawld-linux-amd64 version || true
