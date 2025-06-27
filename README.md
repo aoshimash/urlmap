@@ -1,5 +1,7 @@
 # Crawld
 
+[![CI](https://github.com/aoshimash/crawld/workflows/CI/badge.svg)](https://github.com/aoshimash/crawld/actions/workflows/ci.yml)
+
 A web crawler daemon for collecting and processing web content.
 
 ## 🚀 Features
@@ -53,6 +55,15 @@ crawld crawl https://example.com
 ### Prerequisites
 
 - Go 1.21 or higher
+
+### Continuous Integration
+
+This project uses GitHub Actions for continuous integration. The CI workflow:
+
+- Tests on Go 1.21 and 1.22
+- Runs `go fmt`, `go vet`, and `go test`
+- Includes dependency caching for faster builds
+- Generates code coverage reports
 
 ### Build
 
