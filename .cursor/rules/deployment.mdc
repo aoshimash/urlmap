@@ -54,25 +54,23 @@ jobs:
 
 ### Multi-stage Dockerfile Structure
 ```dockerfile
-# Build stage - Use Ubuntu/Debian (NOT Alpine)
-FROM ubuntu:22.04 AS builder
+# Build stage - Use Go official image matching go.mod version
+FROM golang:1.24 AS builder
 
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    git \
-    golang-go \
-    && rm -rf /var/lib/apt/lists/*
+# Install ca-certificates for HTTPS requests
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o crawld ./cmd/crawld
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o crawld ./cmd/crawld
 
 # Runtime stage - Use distroless
 FROM gcr.io/distroless/static-debian11:nonroot
 
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /app/crawld /usr/local/bin/crawld
 
 USER nonroot:nonroot
@@ -80,10 +78,11 @@ ENTRYPOINT ["/usr/local/bin/crawld"]
 ```
 
 ### Container Image Standards
-- **Build images**: Use `ubuntu:22.04` or `debian:bookworm`
+- **Build images**: Use `golang:X.Y` where X.Y matches go.mod version (avoid Alpine variants)
 - **Runtime images**: Use `gcr.io/distroless/static-debian11:nonroot`
-- **Avoid**: Alpine images due to potential compatibility issues
-- Include minimal necessary dependencies only
+- Always match Go version in build image with go.mod specification
+- Use standard Debian-based Go images for better compatibility
+- Include ca-certificates for HTTPS requests
 - Use non-root user for security
 
 ### Docker Registry
