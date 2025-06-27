@@ -1,6 +1,7 @@
 # Crawld
 
 [![CI](https://github.com/aoshimash/crawld/workflows/CI/badge.svg)](https://github.com/aoshimash/crawld/actions/workflows/ci.yml)
+[![Docker](https://github.com/aoshimash/crawld/workflows/Docker%20Build%20and%20Publish/badge.svg)](https://github.com/aoshimash/crawld/actions/workflows/docker.yml)
 
 A web crawler daemon for collecting and processing web content.
 
@@ -42,12 +43,33 @@ go build -o bin/crawld ./cmd/crawld
 
 ## 🎯 Usage
 
+### Binary Usage
+
 ```bash
 # Basic usage
 crawld --help
 
-# Example usage (to be implemented)
-crawld crawl https://example.com
+# Crawl a website
+crawld https://example.com
+
+# Advanced usage with options
+crawld -d 3 -c 5 --verbose https://example.com
+```
+
+### Docker Usage
+
+```bash
+# Pull from GitHub Container Registry
+docker pull ghcr.io/aoshimash/crawld:latest
+
+# Run with Docker
+docker run --rm ghcr.io/aoshimash/crawld:latest --help
+
+# Crawl a website using Docker
+docker run --rm ghcr.io/aoshimash/crawld:latest https://example.com
+
+# Advanced usage with Docker
+docker run --rm ghcr.io/aoshimash/crawld:latest -d 3 -c 5 --verbose https://example.com
 ```
 
 ## 🧪 Development
