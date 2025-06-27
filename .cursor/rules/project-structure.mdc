@@ -1,6 +1,12 @@
-# Crawld Project Structure and Coding Conventions
+---
+description: "Project structure and coding conventions for the crawld Go project"
+globs: ["**/*.go", "go.mod", "go.sum"]
+alwaysApply: true
+---
 
-## 📁 Project Structure
+# Project Structure Guidelines
+
+## Directory Structure
 
 ```
 crawld/

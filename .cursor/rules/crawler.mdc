@@ -1,8 +1,7 @@
 ---
-title: "Web Crawler Implementation Guidelines"
-description: "HTTP client, HTML parsing, and crawling logic standards"
-type: "Auto Attached"
-patterns: ["internal/crawler/**/*.go", "**/*crawler*.go", "**/*http*.go"]
+description: "Web crawler implementation guidelines with HTTP client configuration and HTML parsing"
+globs: ["internal/crawler/**/*.go", "**/*crawler*.go"]
+alwaysApply: false
 ---
 
 # Web Crawler Implementation Guidelines

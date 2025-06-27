@@ -1,8 +1,7 @@
 ---
-title: "Crawld Project Main Guidelines"
 description: "Core development guidelines for the crawld Go CLI tool"
-type: "Auto Attached"
-patterns: ["**/*.go", "**/*.md", "**/go.mod", "**/go.sum"]
+globs: ["**/*.go", "**/*.md", "**/go.mod", "**/go.sum"]
+alwaysApply: false
 ---
 
 # Crawld Project Guidelines
