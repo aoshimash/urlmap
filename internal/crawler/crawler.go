@@ -69,11 +69,13 @@ type ConcurrentCrawler struct {
 	activeJobs   int                        // Number of active jobs
 	activeJobsMu sync.Mutex                 // Mutex for active jobs counter
 	progress     *progress.ProgressReporter // Progress reporter for tracking crawl progress
+	jobsClosed   bool                       // Flag to track if jobs channel is closed
+	jobsCloseMu  sync.Mutex                 // Mutex for jobs closed flag
 }
 
 // Config holds configuration for the crawler
 type Config struct {
-	MaxDepth       int              // Maximum depth to crawl (0 = no limit)
+	MaxDepth       int              // Maximum depth to crawl (-1 = no limit, 0 = root only)
 	SameDomain     bool             // Whether to limit crawling to same domain
 	UserAgent      string           // User agent to use for requests
 	Timeout        time.Duration    // Request timeout
@@ -151,11 +153,8 @@ func (c *Crawler) CrawlRecursive(startURL string) ([]CrawlResult, *CrawlStats, e
 
 	// Extract base domain for same-domain filtering
 	if c.sameDomain {
-		c.baseDomain, err = url.ExtractDomain(normalizedURL)
-		if err != nil {
-			return nil, &c.stats, fmt.Errorf("failed to extract base domain: %w", err)
-		}
-		c.logger.Debug("Same-domain filtering enabled", "base_domain", c.baseDomain)
+		c.baseDomain = normalizedURL // Store the full URL instead of just the domain
+		c.logger.Debug("Same-domain filtering enabled", "base_url", c.baseDomain)
 	}
 
 	// Initialize crawling queue with the start URL
@@ -177,7 +176,7 @@ func (c *Crawler) CrawlRecursive(startURL string) ([]CrawlResult, *CrawlStats, e
 		c.logger.Debug("Processing URL", "url", current.url, "depth", current.depth, "queue_size", len(queue))
 
 		// Check depth limit
-		if c.maxDepth > 0 && current.depth >= c.maxDepth {
+		if c.maxDepth >= 0 && current.depth > c.maxDepth {
 			c.logger.Debug("Skipping URL due to depth limit", "url", current.url, "depth", current.depth)
 			c.stats.SkippedURLs++
 			continue
@@ -381,11 +380,8 @@ func (cc *ConcurrentCrawler) CrawlConcurrent(startURL string) ([]CrawlResult, *C
 
 	// Extract base domain for same-domain filtering
 	if cc.sameDomain {
-		cc.baseDomain, err = url.ExtractDomain(normalizedURL)
-		if err != nil {
-			return nil, &cc.stats, fmt.Errorf("failed to extract base domain: %w", err)
-		}
-		cc.logger.Debug("Same-domain filtering enabled", "base_domain", cc.baseDomain)
+		cc.baseDomain = normalizedURL // Store the full URL instead of just the domain
+		cc.logger.Debug("Same-domain filtering enabled", "base_url", cc.baseDomain)
 	}
 
 	// Start workers
@@ -454,18 +450,6 @@ func (cc *ConcurrentCrawler) worker(id int) {
 
 // processJob processes a single crawl job
 func (cc *ConcurrentCrawler) processJob(job CrawlJob, workerID int) {
-	defer func() {
-		cc.activeJobsMu.Lock()
-		cc.activeJobs--
-		isLastJob := cc.activeJobs == 0
-		cc.activeJobsMu.Unlock()
-
-		if isLastJob {
-			// No more active jobs, close the jobs channel
-			close(cc.jobs)
-		}
-	}()
-
 	cc.logger.Debug("Processing job", "worker_id", workerID, "url", job.URL, "depth", job.Depth)
 
 	// Apply rate limiting if progress reporter is configured with rate limiting
@@ -474,7 +458,7 @@ func (cc *ConcurrentCrawler) processJob(job CrawlJob, workerID int) {
 	}
 
 	// Check depth limit
-	if cc.maxDepth > 0 && job.Depth >= cc.maxDepth {
+	if cc.maxDepth >= 0 && job.Depth > cc.maxDepth {
 		cc.logger.Debug("Skipping job due to depth limit", "url", job.URL, "depth", job.Depth)
 		cc.mu.Lock()
 		cc.stats.SkippedURLs++
@@ -484,6 +468,7 @@ func (cc *ConcurrentCrawler) processJob(job CrawlJob, workerID int) {
 		if cc.progress != nil {
 			cc.progress.IncrementSkipped()
 		}
+		cc.checkAndCloseJobsChannel()
 		return
 	}
 
@@ -502,6 +487,7 @@ func (cc *ConcurrentCrawler) processJob(job CrawlJob, workerID int) {
 	select {
 	case cc.results <- result:
 	case <-cc.ctx.Done():
+		cc.checkAndCloseJobsChannel()
 		return
 	}
 
@@ -516,6 +502,26 @@ func (cc *ConcurrentCrawler) processJob(job CrawlJob, workerID int) {
 		cc.stats.MaxDepthReached = job.Depth
 	}
 	cc.mu.Unlock()
+
+	cc.checkAndCloseJobsChannel()
+}
+
+// checkAndCloseJobsChannel safely checks if all jobs are done and closes the channel
+func (cc *ConcurrentCrawler) checkAndCloseJobsChannel() {
+	cc.activeJobsMu.Lock()
+	cc.activeJobs--
+	shouldClose := cc.activeJobs == 0
+	cc.activeJobsMu.Unlock()
+
+	if shouldClose {
+		cc.jobsCloseMu.Lock()
+		if !cc.jobsClosed {
+			cc.jobsClosed = true
+			close(cc.jobs)
+			cc.logger.Debug("Jobs channel closed - no more active jobs")
+		}
+		cc.jobsCloseMu.Unlock()
+	}
 }
 
 // crawlSingleConcurrent crawls a single URL (thread-safe version)
@@ -598,6 +604,15 @@ func (cc *ConcurrentCrawler) addLinksToQueue(links []string, currentDepth int) {
 
 // addJob adds a job to the job queue with proper synchronization
 func (cc *ConcurrentCrawler) addJob(job CrawlJob) {
+	// Check if jobs channel is already closed
+	cc.jobsCloseMu.Lock()
+	if cc.jobsClosed {
+		cc.jobsCloseMu.Unlock()
+		cc.logger.Debug("Cannot add job - jobs channel is closed", "url", job.URL)
+		return
+	}
+	cc.jobsCloseMu.Unlock()
+
 	cc.activeJobsMu.Lock()
 	cc.activeJobs++
 	cc.activeJobsMu.Unlock()
@@ -606,9 +621,17 @@ func (cc *ConcurrentCrawler) addJob(job CrawlJob) {
 	case cc.jobs <- job:
 		// Job added successfully
 	case <-cc.ctx.Done():
+		// Context cancelled, decrement the counter
 		cc.activeJobsMu.Lock()
 		cc.activeJobs--
 		cc.activeJobsMu.Unlock()
+		return
+	default:
+		// Channel might be full or closed, handle gracefully
+		cc.activeJobsMu.Lock()
+		cc.activeJobs--
+		cc.activeJobsMu.Unlock()
+		cc.logger.Debug("Failed to add job - channel closed or full", "url", job.URL)
 		return
 	}
 }
