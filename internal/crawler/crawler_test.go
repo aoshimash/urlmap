@@ -140,3 +140,207 @@ func TestCrawlerUtilityMethods(t *testing.T) {
 		t.Error("GetStats() did not return correct stats")
 	}
 }
+
+func TestNewConcurrentCrawler(t *testing.T) {
+	config := &Config{
+		MaxDepth:   2,
+		SameDomain: true,
+		UserAgent:  "test/1.0",
+		Timeout:    10 * time.Second,
+		Workers:    5,
+	}
+
+	cc, err := NewConcurrentCrawler(config)
+	if err != nil {
+		t.Fatalf("NewConcurrentCrawler() failed: %v", err)
+	}
+
+	if cc == nil {
+		t.Fatal("NewConcurrentCrawler() returned nil")
+	}
+
+	// Test that all fields are properly initialized
+	if cc.Crawler == nil {
+		t.Error("ConcurrentCrawler.Crawler is nil")
+	}
+
+	if cc.jobs == nil {
+		t.Error("ConcurrentCrawler.jobs channel is nil")
+	}
+
+	if cc.results == nil {
+		t.Error("ConcurrentCrawler.results channel is nil")
+	}
+
+	if cc.ctx == nil {
+		t.Error("ConcurrentCrawler.ctx is nil")
+	}
+
+	if cc.cancel == nil {
+		t.Error("ConcurrentCrawler.cancel is nil")
+	}
+
+	if cc.workers != 5 {
+		t.Errorf("Expected workers 5, got %d", cc.workers)
+	}
+}
+
+func TestConcurrentCrawler_InvalidURL(t *testing.T) {
+	cc, err := NewConcurrentCrawler(nil)
+	if err != nil {
+		t.Fatalf("NewConcurrentCrawler() failed: %v", err)
+	}
+
+	invalidURLs := []string{
+		"",
+		"not-a-url",
+		"ftp://example.com",
+		"javascript:void(0)",
+	}
+
+	for _, url := range invalidURLs {
+		t.Run("invalid_url_"+url, func(t *testing.T) {
+			results, stats, err := cc.CrawlConcurrent(url)
+			if err == nil {
+				t.Error("Expected error for invalid URL")
+			}
+
+			if len(results) != 0 {
+				t.Errorf("Expected 0 results, got %d", len(results))
+			}
+
+			if stats.TotalURLs != 0 {
+				t.Errorf("Expected 0 total URLs, got %d", stats.TotalURLs)
+			}
+		})
+	}
+}
+
+func TestConcurrentCrawler_Cancel(t *testing.T) {
+	cc, err := NewConcurrentCrawler(&Config{
+		Workers:  2,
+		MaxDepth: 10, // Deep crawl to ensure it doesn't finish quickly
+		Timeout:  1 * time.Second,
+	})
+	if err != nil {
+		t.Fatalf("NewConcurrentCrawler() failed: %v", err)
+	}
+
+	// Start crawling in a goroutine
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		// Use a URL that would take time to crawl if it were real
+		cc.CrawlConcurrent("https://httpbin.org/delay/5")
+	}()
+
+	// Cancel immediately
+	cc.Cancel()
+
+	// Wait for completion with timeout
+	select {
+	case <-done:
+		// Test passed - crawl was cancelled
+	case <-time.After(2 * time.Second):
+		t.Error("Crawl did not complete within expected time after cancellation")
+	}
+}
+
+func TestConcurrentCrawler_ThreadSafety(t *testing.T) {
+	// This test ensures no race conditions occur during concurrent operations
+	cc, err := NewConcurrentCrawler(&Config{
+		Workers:  2,
+		MaxDepth: 1, // Limit depth to prevent long running test
+		Timeout:  2 * time.Second,
+	})
+	if err != nil {
+		t.Fatalf("NewConcurrentCrawler() failed: %v", err)
+	}
+
+	// Test concurrent access to GetResults and GetStats
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		// Use a simpler URL that's more likely to work
+		cc.CrawlConcurrent("https://example.com")
+	}()
+
+	// Concurrently call GetResults and GetStats
+	for i := 0; i < 5; i++ {
+		go func() {
+			cc.GetResults()
+			cc.GetStats()
+		}()
+	}
+
+	// Wait for completion with a shorter timeout
+	select {
+	case <-done:
+		// Test completed successfully
+	case <-time.After(5 * time.Second):
+		t.Error("Test timed out")
+		cc.Cancel()
+		<-done // Wait for goroutine to finish
+	}
+}
+
+func TestConcurrentCrawler_WorkerConfiguration(t *testing.T) {
+	testCases := []struct {
+		name     string
+		workers  int
+		expected int
+	}{
+		{"default_workers", 0, 10},
+		{"custom_workers", 5, 5},
+		{"negative_workers", -1, 10},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			config := &Config{
+				Workers: tc.workers,
+			}
+
+			cc, err := NewConcurrentCrawler(config)
+			if err != nil {
+				t.Fatalf("NewConcurrentCrawler() failed: %v", err)
+			}
+
+			if cc.workers != tc.expected {
+				t.Errorf("Expected %d workers, got %d", tc.expected, cc.workers)
+			}
+		})
+	}
+}
+
+// Benchmark to compare concurrent vs sequential performance
+func BenchmarkCrawler_Sequential(b *testing.B) {
+	config := DefaultConfig()
+	config.MaxDepth = 1 // Limit depth for benchmark
+
+	c, err := New(config)
+	if err != nil {
+		b.Fatalf("New() failed: %v", err)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _, _ = c.CrawlRecursive("https://httpbin.org/html")
+		c.Reset()
+	}
+}
+
+func BenchmarkCrawler_Concurrent(b *testing.B) {
+	config := DefaultConfig()
+	config.MaxDepth = 1 // Limit depth for benchmark
+
+	cc, err := NewConcurrentCrawler(config)
+	if err != nil {
+		b.Fatalf("NewConcurrentCrawler() failed: %v", err)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _, _ = cc.CrawlConcurrent("https://httpbin.org/html")
+	}
+}

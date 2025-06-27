@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/url"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/aoshimash/crawld/internal/config"
 	"github.com/aoshimash/crawld/internal/crawler"
@@ -88,18 +90,57 @@ func runCrawl(cmd *cobra.Command, args []string) error {
 		SameDomain: true, // For now, limit to same domain
 		UserAgent:  userAgent,
 		Logger:     logger,
+		Workers:    concurrent,
 	}
 
-	// Create and configure the crawler
-	c, err := crawler.New(crawlerConfig)
+	// Create and configure the concurrent crawler
+	c, err := crawler.NewConcurrentCrawler(crawlerConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create crawler: %w", err)
 	}
 
-	// Perform the crawl
-	results, stats, err := c.CrawlRecursive(targetURL)
-	if err != nil {
-		return fmt.Errorf("crawl failed: %w", err)
+	// Set up signal handling for graceful shutdown
+
+	// Create a channel to listen for interrupt signals
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+
+	// Start crawling in a goroutine
+	type crawlResult struct {
+		results []crawler.CrawlResult
+		stats   *crawler.CrawlStats
+		err     error
+	}
+
+	resultChan := make(chan crawlResult, 1)
+	go func() {
+		results, stats, err := c.CrawlConcurrent(targetURL)
+		resultChan <- crawlResult{results: results, stats: stats, err: err}
+	}()
+
+	// Wait for either completion or interruption
+	var results []crawler.CrawlResult
+	var stats *crawler.CrawlStats
+	var crawlErr error
+
+	select {
+	case result := <-resultChan:
+		results = result.results
+		stats = result.stats
+		crawlErr = result.err
+	case <-sigChan:
+		logger.Info("Received interrupt signal, stopping crawl...")
+		c.Cancel()
+		// Wait for crawl to stop gracefully
+		result := <-resultChan
+		results = result.results
+		stats = result.stats
+		crawlErr = result.err
+		logger.Info("Crawl stopped gracefully")
+	}
+
+	if crawlErr != nil {
+		return fmt.Errorf("crawl failed: %w", crawlErr)
 	}
 
 	// Extract all URLs from the results
