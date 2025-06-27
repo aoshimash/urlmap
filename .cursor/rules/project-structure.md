@@ -1,0 +1,162 @@
+# Crawld Project Structure and Coding Conventions
+
+## 📁 Project Structure
+
+```
+crawld/
+├── cmd/                    # Command-line applications
+│   └── crawld/            # Main CLI application
+│       └── main.go        # Entry point
+├── internal/              # Private application code
+│   ├── crawler/           # Core crawler logic
+│   ├── config/            # Configuration management
+│   └── storage/           # Data storage
+├── pkg/                   # Public library code
+│   ├── utils/             # Utility functions
+│   └── types/             # Common type definitions
+├── test/                  # Test files
+│   ├── fixtures/          # Test data
+│   └── integration/       # Integration tests
+├── docs/                  # Documentation
+├── scripts/               # Build and deployment scripts
+├── configs/               # Sample configuration files
+└── bin/                   # Build artifacts
+```
+
+## 🎯 Directory Conventions
+
+### `/cmd`
+- Entry points for executable applications
+- Each subdirectory matches the executable name
+- Keep main.go files minimal (business logic goes in /internal)
+
+### `/internal`
+- Private application code
+- Cannot be imported externally
+- Package names based on functionality (crawler, config, storage, etc.)
+
+### `/pkg`
+- Public libraries usable by external applications
+- Generic utilities and type definitions
+- Design carefully (backward compatibility required once public)
+
+## 🔧 Coding Conventions
+
+### Package Naming
+- Use lowercase only
+- Short and clear names
+- Use singular form (util instead of utils)
+
+### Import Conventions
+```go
+import (
+    // Standard library
+    "fmt"
+    "net/http"
+
+    // Third-party libraries
+    "github.com/spf13/cobra"
+    "github.com/PuerkitoBio/goquery"
+
+    // Internal packages
+    "github.com/aoshimash/crawld/internal/crawler"
+    "github.com/aoshimash/crawld/pkg/utils"
+)
+```
+
+### File Naming
+- Use lowercase snake_case
+- Function-based naming
+- Test files use `_test.go` suffix
+
+### Function/Method Naming
+- Public functions: PascalCase
+- Private functions: camelCase
+- Start with verbs (Get, Create, Update, Delete, etc.)
+
+### Struct Naming
+- PascalCase
+- Clear and descriptive names
+- Interface names use -er suffix (Crawler, Parser, etc.)
+
+## 🧪 Testing Conventions
+
+### Test File Structure
+```
+internal/crawler/
+├── crawler.go
+├── crawler_test.go
+└── testdata/
+    └── sample.html
+```
+
+### Test Naming
+- `TestFunctionName` format
+- Use `t.Run()` for subtests
+- Table-driven tests are recommended
+
+## 📝 Error Handling
+
+### Error Creation
+```go
+// Simple error
+return fmt.Errorf("failed to crawl URL %s: %w", url, err)
+
+// Custom error type
+type CrawlError struct {
+    URL string
+    Err error
+}
+```
+
+### Error Propagation
+- Wrap original errors whenever possible
+- Add contextual information
+- Set appropriate log levels
+
+## 🔍 Dependency Management
+
+### Core Dependencies
+- **CLI**: `github.com/spf13/cobra`
+- **HTTP**: `github.com/go-resty/resty/v2`
+- **HTML parsing**: `github.com/PuerkitoBio/goquery`
+
+### Adding Dependencies
+1. Add packages with `go get`
+2. Clean up with `go mod tidy`
+3. Consider vendoring when necessary
+
+## 🚀 Build & Deploy
+
+### Build Commands
+```bash
+# Development build
+go build -o bin/crawld ./cmd/crawld
+
+# Release build
+go build -ldflags="-s -w" -o bin/crawld ./cmd/crawld
+```
+
+### Static Analysis
+```bash
+go vet ./...
+go fmt ./...
+golangci-lint run
+```
+
+## 📋 Commit Conventions
+
+### Commit Message Format
+```
+<type>: <description>
+
+<body>
+```
+
+### Types
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation update
+- `refactor`: Code refactoring
+- `test`: Add or modify tests
+- `ci`: CI/CD configuration changes
