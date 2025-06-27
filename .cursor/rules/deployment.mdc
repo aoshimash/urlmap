@@ -1,8 +1,7 @@
 ---
-title: "Deployment and CI/CD Guidelines"
-description: "GitHub Actions, containerization, and release management standards"
-type: "Auto Attached"
-patterns: [".github/**/*.yml", ".github/**/*.yaml", "**/Dockerfile", "**/docker-compose.yml", "**/*release*"]
+description: "Deployment and CI/CD guidelines for GitHub Actions, Docker, and binary distribution"
+globs: [".github/workflows/**/*.yml", "Dockerfile", "**/*deploy*.go"]
+alwaysApply: false
 ---
 
 # Deployment and CI/CD Guidelines

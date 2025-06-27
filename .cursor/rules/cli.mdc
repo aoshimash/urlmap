@@ -1,8 +1,7 @@
 ---
-title: "CLI Development Guidelines"
 description: "Cobra and CLI-specific development standards for crawld"
-type: "Auto Attached"
-patterns: ["cmd/**/*.go", "**/*_cmd.go", "**/*command*.go"]
+globs: ["cmd/**/*.go", "**/*_cmd.go", "**/*command*.go"]
+alwaysApply: false
 ---
 
 # CLI Development Guidelines
