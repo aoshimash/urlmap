@@ -1,0 +1,72 @@
+---
+title: "Crawld Project Main Guidelines"
+description: "Core development guidelines for the crawld Go CLI tool"
+type: "Auto Attached"
+patterns: ["**/*.go", "**/*.md", "**/go.mod", "**/go.sum"]
+---
+
+# Crawld Project Guidelines
+
+## Project Overview
+crawld is a Go CLI tool that recursively crawls URLs and outputs discovered links within the same domain.
+
+## General Development Guidelines
+
+### Language and Documentation
+- **Code comments**: Write in English
+- **Documentation**: Provide both English and Japanese versions
+- **Error messages**: Use clear, actionable English messages
+- **Commit messages**: Write in English following conventional commits
+
+### Go Standards
+- Follow standard Go project structure:
+  ```
+  .
+  ├── cmd/
+  │   └── crawld/
+  │       └── main.go
+  ├── internal/
+  │   ├── crawler/
+  │   ├── config/
+  │   └── output/
+  ├── pkg/
+  ├── go.mod
+  ├── go.sum
+  ├── README.md
+  └── README_ja.md
+  ```
+
+### Code Style
+- Follow `gofmt` formatting
+- Use `golint` and `go vet` standards
+- Prefer explicit error handling over panics
+- Use descriptive variable and function names
+- Keep functions focused and small (< 50 lines when possible)
+
+### Dependencies
+- Use Go modules (`go.mod`)
+- Minimize external dependencies
+- Prefer standard library when sufficient
+
+### Testing
+- Write unit tests for all public functions
+- Use table-driven tests for multiple test cases
+- Place tests in `*_test.go` files
+- Aim for meaningful test coverage (not just high percentage)
+- Use `testify` for assertions if needed
+
+### Error Handling
+- Always handle errors explicitly
+- Use `fmt.Errorf` for error wrapping
+- Provide context in error messages
+- Log errors appropriately with slog
+
+## Project Structure Rules
+
+### Directory Usage
+- `cmd/crawld/`: Main application entry point
+- `internal/`: Private application code
+- `pkg/`: Public library code (if any)
+- `internal/crawler/`: Core crawling logic
+- `internal/config/`: Configuration handling
+- `internal/output/`: Output formatting logic

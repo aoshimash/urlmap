@@ -1,0 +1,173 @@
+---
+title: "Web Crawler Implementation Guidelines"
+description: "HTTP client, HTML parsing, and crawling logic standards"
+type: "Auto Attached"
+patterns: ["internal/crawler/**/*.go", "**/*crawler*.go", "**/*http*.go"]
+---
+
+# Web Crawler Implementation Guidelines
+
+## HTTP Client Configuration
+
+### Resty Client Setup
+```go
+// Configure resty client with appropriate settings
+func newHTTPClient(userAgent string, timeout time.Duration) *resty.Client {
+    client := resty.New()
+    client.SetTimeout(timeout)
+    client.SetUserAgent(userAgent)
+    client.SetRetryCount(3)
+    client.SetRetryWaitTime(1 * time.Second)
+    client.SetRetryMaxWaitTime(5 * time.Second)
+
+    // Add conditions for retry
+    client.AddRetryCondition(func(r *resty.Response, err error) bool {
+        return r.StatusCode() >= 500 || err != nil
+    })
+
+    return client
+}
+```
+
+### User-Agent Standards
+- **Default User-Agent**: `crawld/1.0.0 (+https://github.com/aoshimash/crawld)`
+- **Format**: `{tool-name}/{version} (+{repository-url})`
+- Allow customization via `--user-agent` flag
+- Include version from build-time variables
+
+### HTTP Error Handling
+- Handle network timeouts gracefully
+- Retry on 5xx server errors (not 4xx client errors)
+- Log failed requests with context
+- Continue crawling other URLs when one fails
+
+## HTML Parsing with goquery
+
+### Link Extraction
+```go
+// Extract links from HTML document
+func extractLinks(baseURL string, html string) ([]string, error) {
+    doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
+    if err != nil {
+        return nil, fmt.Errorf("failed to parse HTML: %w", err)
+    }
+
+    var links []string
+    doc.Find("a[href]").Each(func(i int, s *goquery.Selection) {
+        href, exists := s.Attr("href")
+        if !exists {
+            return
+        }
+
+        // Resolve relative URLs
+        if resolvedURL, err := resolveURL(baseURL, href); err == nil {
+            links = append(links, resolvedURL)
+        }
+    })
+
+    return links, nil
+}
+```
+
+### URL Processing Rules
+- Extract only `<a href="...">` links
+- Resolve relative URLs to absolute URLs
+- Filter out:
+  - External domains (different from start URL)
+  - Fragment-only URLs (`#section`)
+  - JavaScript URLs (`javascript:...`)
+  - Mail URLs (`mailto:...`)
+  - Non-HTTP(S) protocols
+
+## Concurrent Processing
+
+### Worker Pool Pattern
+```go
+// Implement worker pool for concurrent crawling
+type CrawlWorker struct {
+    id       int
+    jobs     <-chan CrawlJob
+    results  chan<- CrawlResult
+    client   *resty.Client
+    baseHost string
+}
+
+func (w *CrawlWorker) Start(ctx context.Context) {
+    for {
+        select {
+        case job := <-w.jobs:
+            result := w.processURL(job.URL, job.Depth)
+            select {
+            case w.results <- result:
+            case <-ctx.Done():
+                return
+            }
+        case <-ctx.Done():
+            return
+        }
+    }
+}
+```
+
+### Concurrency Guidelines
+- Default concurrent workers: 10
+- Allow customization via `--concurrent` flag
+- Use context for cancellation
+- Implement proper backpressure
+- Respect rate limits (add delays if needed)
+
+## Crawling Logic
+
+### Depth Control
+- **Default depth**: 0 (unlimited)
+- **Option**: `--depth N` to limit crawl depth
+- Track depth per URL in crawl queue
+- Stop processing URLs at max depth
+
+### Duplicate Detection
+```go
+type URLVisited map[string]bool
+
+func (uv URLVisited) isVisited(url string) bool {
+    return uv[url]
+}
+
+func (uv URLVisited) markVisited(url string) {
+    uv[url] = true
+}
+```
+
+### Domain Filtering
+- Extract hostname from start URL
+- Only crawl URLs with same hostname
+- Support subdomains optionally (future enhancement)
+
+## Error Handling and Logging
+
+### Structured Logging
+```go
+// Log with structured context
+slog.Info("Starting crawl",
+    "url", startURL,
+    "maxDepth", maxDepth,
+    "concurrent", concurrentWorkers)
+
+slog.Warn("Failed to fetch URL",
+    "url", failedURL,
+    "error", err.Error(),
+    "statusCode", resp.StatusCode())
+```
+
+### Graceful Degradation
+- Continue crawling when individual URLs fail
+- Report summary of failed URLs
+- Don't exit on network errors
+- Provide meaningful progress updates
+
+## Output Format
+
+### Plain Text Output
+- One URL per line to stdout
+- Sort URLs alphabetically (optional)
+- Ensure deterministic output for testing
+- No trailing whitespace or empty lines

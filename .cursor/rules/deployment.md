@@ -1,0 +1,141 @@
+---
+title: "Deployment and CI/CD Guidelines"
+description: "GitHub Actions, containerization, and release management standards"
+type: "Auto Attached"
+patterns: [".github/**/*.yml", ".github/**/*.yaml", "**/Dockerfile", "**/docker-compose.yml", "**/*release*"]
+---
+
+# Deployment and CI/CD Guidelines
+
+## GitHub Actions Standards
+
+### Workflow Structure
+- Use `.github/workflows/` for all CI/CD workflows
+- Separate workflows for different purposes:
+  - `ci.yml`: Testing and linting
+  - `release.yml`: Binary releases and tagging
+  - `docker.yml`: Container builds and publishing
+
+### CI Workflow Example
+```yaml
+name: CI
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: [1.21, 1.22]
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-go@v4
+      with:
+        go-version: ${{ matrix.go-version }}
+
+    - name: Run tests
+      run: |
+        go mod download
+        go test -v ./...
+        go vet ./...
+```
+
+### Release Management
+- Use semantic versioning (v1.0.0, v1.1.0, etc.)
+- Automated releases triggered by git tags
+- Generate release notes from commit messages
+- Build multi-platform binaries (linux, darwin, windows)
+
+## Container Guidelines
+
+### Multi-stage Dockerfile Structure
+```dockerfile
+# Build stage - Use Ubuntu/Debian (NOT Alpine)
+FROM ubuntu:22.04 AS builder
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    git \
+    golang-go \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o crawld ./cmd/crawld
+
+# Runtime stage - Use distroless
+FROM gcr.io/distroless/static-debian11:nonroot
+
+COPY --from=builder /app/crawld /usr/local/bin/crawld
+
+USER nonroot:nonroot
+ENTRYPOINT ["/usr/local/bin/crawld"]
+```
+
+### Container Image Standards
+- **Build images**: Use `ubuntu:22.04` or `debian:bookworm`
+- **Runtime images**: Use `gcr.io/distroless/static-debian11:nonroot`
+- **Avoid**: Alpine images due to potential compatibility issues
+- Include minimal necessary dependencies only
+- Use non-root user for security
+
+### Docker Registry
+- Push to GitHub Container Registry (ghcr.io)
+- Tag with git commit SHA and version tags
+- Maintain `latest` tag for main branch
+
+## Binary Distribution
+
+### Release Artifacts
+```yaml
+# Example release job
+release:
+  runs-on: ubuntu-latest
+  steps:
+  - name: Build binaries
+    run: |
+      # Linux
+      GOOS=linux GOARCH=amd64 go build -o crawld-linux-amd64 ./cmd/crawld
+      GOOS=linux GOARCH=arm64 go build -o crawld-linux-arm64 ./cmd/crawld
+
+      # macOS
+      GOOS=darwin GOARCH=amd64 go build -o crawld-darwin-amd64 ./cmd/crawld
+      GOOS=darwin GOARCH=arm64 go build -o crawld-darwin-arm64 ./cmd/crawld
+
+      # Windows
+      GOOS=windows GOARCH=amd64 go build -o crawld-windows-amd64.exe ./cmd/crawld
+```
+
+### Version Management
+- Embed version information at build time
+- Use `go build -ldflags` for version injection
+- Include git commit hash in version output
+
+## Security Considerations
+
+### Container Security
+- Use distroless images for minimal attack surface
+- Run as non-root user
+- Scan images for vulnerabilities
+- Pin base image versions
+
+### Dependency Management
+- Regular dependency updates via Dependabot
+- Security scanning of Go modules
+- Use `go mod tidy` in CI to verify dependencies
+
+## Performance and Optimization
+
+### Build Optimization
+- Use Go build cache in CI
+- Optimize Docker layer caching
+- Parallel test execution where possible
+- Cache Go modules between builds
