@@ -1,5 +1,7 @@
 # Crawld
 
+[![CI](https://github.com/aoshimash/crawld/actions/workflows/ci.yml/badge.svg)](https://github.com/aoshimash/crawld/actions/workflows/ci.yml)
+
 A web crawler daemon for collecting and processing web content.
 
 ## 🚀 Features
@@ -9,22 +11,22 @@ A web crawler daemon for collecting and processing web content.
 - HTTP client with retry capabilities
 - Modular architecture for extensibility
 
-## 📋 Project Structure
+## 📁 Project Structure
 
 ```
 crawld/
-├── cmd/                # Command-line applications
-│   └── crawld/         # Main CLI application
-├── internal/           # Private application code
-│   └── crawler/        # Core crawler logic
-├── pkg/               # Public library code
-│   └── utils/         # Utility functions
-├── go.mod             # Go module file
-├── go.sum             # Go dependency checksums
-└── README.md          # This file
+├── cmd/                    # Command-line applications
+│   └── crawld/            # Main CLI application
+├── internal/              # Private application code
+│   └── crawler/           # Core crawler logic
+├── pkg/                   # Public library code
+│   └── utils/             # Utility functions
+├── go.mod                 # Go module file
+├── go.sum                 # Go dependency checksums
+└── README.md              # This file
 ```
 
-## 🛠 Installation
+## 💾 Installation
 
 ```bash
 # Clone the repository
@@ -72,7 +74,7 @@ go test ./...
 go vet ./...
 ```
 
-## 📚 Dependencies
+## 📦 Dependencies
 
 - [Cobra](https://github.com/spf13/cobra) - CLI framework
 - [Resty](https://github.com/go-resty/resty) - HTTP client library
