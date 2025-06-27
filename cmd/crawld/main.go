@@ -11,6 +11,7 @@ import (
 	"github.com/aoshimash/crawld/internal/config"
 	"github.com/aoshimash/crawld/internal/crawler"
 	"github.com/aoshimash/crawld/internal/output"
+	"github.com/aoshimash/crawld/internal/progress"
 	"github.com/spf13/cobra"
 )
 
@@ -23,10 +24,12 @@ var (
 
 // Command line flags
 var (
-	depth      int
-	verbose    bool
-	userAgent  string
-	concurrent int
+	depth        int
+	verbose      bool
+	userAgent    string
+	concurrent   int
+	showProgress bool
+	rateLimit    float64
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -63,6 +66,8 @@ func init() {
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose logging")
 	rootCmd.Flags().StringVarP(&userAgent, "user-agent", "u", "crawld/1.0.0 (+https://github.com/aoshimash/crawld)", "Custom User-Agent string")
 	rootCmd.Flags().IntVarP(&concurrent, "concurrent", "c", 10, "Number of concurrent requests")
+	rootCmd.Flags().BoolVarP(&showProgress, "progress", "p", true, "Show progress indicators (default: true)")
+	rootCmd.Flags().Float64VarP(&rateLimit, "rate-limit", "r", 0, "Rate limit requests per second (0 = no limit)")
 
 	// Add subcommands
 	rootCmd.AddCommand(versionCmd)
@@ -84,13 +89,22 @@ func runCrawl(cmd *cobra.Command, args []string) error {
 	// Log the start of crawl operation with structured logging
 	config.LogCrawlStart(targetURL, depth, concurrent, userAgent)
 
+	// Create progress configuration
+	progressConfig := &progress.Config{
+		ShowProgress: showProgress,
+		RateLimit:    rateLimit,
+		Logger:       logger,
+	}
+
 	// Create crawler configuration
 	crawlerConfig := &crawler.Config{
-		MaxDepth:   depth,
-		SameDomain: true, // For now, limit to same domain
-		UserAgent:  userAgent,
-		Logger:     logger,
-		Workers:    concurrent,
+		MaxDepth:       depth,
+		SameDomain:     true, // For now, limit to same domain
+		UserAgent:      userAgent,
+		Logger:         logger,
+		Workers:        concurrent,
+		ShowProgress:   showProgress,
+		ProgressConfig: progressConfig,
 	}
 
 	// Create and configure the concurrent crawler

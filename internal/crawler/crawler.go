@@ -9,6 +9,7 @@ import (
 
 	"github.com/aoshimash/crawld/internal/client"
 	"github.com/aoshimash/crawld/internal/parser"
+	"github.com/aoshimash/crawld/internal/progress"
 	"github.com/aoshimash/crawld/internal/url"
 )
 
@@ -56,38 +57,43 @@ type Crawler struct {
 
 // ConcurrentCrawler handles concurrent crawling with worker pool
 type ConcurrentCrawler struct {
-	*Crawler                        // Embed the original crawler
-	jobs         chan CrawlJob      // Channel for distributing jobs
-	results      chan CrawlResult   // Channel for collecting results
-	visited      sync.Map           // Thread-safe visited URLs tracker
-	mu           sync.RWMutex       // Mutex for protecting shared state
-	wg           sync.WaitGroup     // WaitGroup for worker synchronization
-	ctx          context.Context    // Context for cancellation
-	cancel       context.CancelFunc // Cancel function
-	resultsList  []CrawlResult      // Thread-safe results collection
-	activeJobs   int                // Number of active jobs
-	activeJobsMu sync.Mutex         // Mutex for active jobs counter
+	*Crawler                                // Embed the original crawler
+	jobs         chan CrawlJob              // Channel for distributing jobs
+	results      chan CrawlResult           // Channel for collecting results
+	visited      sync.Map                   // Thread-safe visited URLs tracker
+	mu           sync.RWMutex               // Mutex for protecting shared state
+	wg           sync.WaitGroup             // WaitGroup for worker synchronization
+	ctx          context.Context            // Context for cancellation
+	cancel       context.CancelFunc         // Cancel function
+	resultsList  []CrawlResult              // Thread-safe results collection
+	activeJobs   int                        // Number of active jobs
+	activeJobsMu sync.Mutex                 // Mutex for active jobs counter
+	progress     *progress.ProgressReporter // Progress reporter for tracking crawl progress
 }
 
 // Config holds configuration for the crawler
 type Config struct {
-	MaxDepth   int           // Maximum depth to crawl (0 = no limit)
-	SameDomain bool          // Whether to limit crawling to same domain
-	UserAgent  string        // User agent to use for requests
-	Timeout    time.Duration // Request timeout
-	Logger     *slog.Logger  // Logger instance
-	Workers    int           // Number of concurrent workers
+	MaxDepth       int              // Maximum depth to crawl (0 = no limit)
+	SameDomain     bool             // Whether to limit crawling to same domain
+	UserAgent      string           // User agent to use for requests
+	Timeout        time.Duration    // Request timeout
+	Logger         *slog.Logger     // Logger instance
+	Workers        int              // Number of concurrent workers
+	ShowProgress   bool             // Whether to show progress indicators
+	ProgressConfig *progress.Config // Progress reporting configuration
 }
 
 // DefaultConfig returns a default crawler configuration
 func DefaultConfig() *Config {
 	return &Config{
-		MaxDepth:   3,
-		SameDomain: true,
-		UserAgent:  "crawld/1.0",
-		Timeout:    30 * time.Second,
-		Logger:     slog.Default(),
-		Workers:    10,
+		MaxDepth:       3,
+		SameDomain:     true,
+		UserAgent:      "crawld/1.0",
+		Timeout:        30 * time.Second,
+		Logger:         slog.Default(),
+		Workers:        10,
+		ShowProgress:   true,
+		ProgressConfig: progress.DefaultConfig(),
 	}
 }
 
@@ -324,7 +330,7 @@ func NewConcurrentCrawler(config *Config) (*ConcurrentCrawler, error) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	return &ConcurrentCrawler{
+	cc := &ConcurrentCrawler{
 		Crawler:     crawler,
 		jobs:        make(chan CrawlJob, crawler.workers*2), // Buffer for better performance
 		results:     make(chan CrawlResult, crawler.workers*2),
@@ -332,7 +338,22 @@ func NewConcurrentCrawler(config *Config) (*ConcurrentCrawler, error) {
 		ctx:         ctx,
 		cancel:      cancel,
 		resultsList: make([]CrawlResult, 0),
-	}, nil
+	}
+
+	// Setup progress reporter if enabled
+	if config != nil && config.ShowProgress {
+		progressConfig := config.ProgressConfig
+		if progressConfig == nil {
+			progressConfig = progress.DefaultConfig()
+		}
+		// Override logger if specified in crawler config
+		if config.Logger != nil {
+			progressConfig.Logger = config.Logger
+		}
+		cc.progress = progress.NewProgressReporter(progressConfig)
+	}
+
+	return cc, nil
 }
 
 // CrawlConcurrent performs concurrent crawling starting from the given URL
@@ -341,6 +362,12 @@ func (cc *ConcurrentCrawler) CrawlConcurrent(startURL string) ([]CrawlResult, *C
 	cc.mu.Lock()
 	cc.stats.StartTime = time.Now()
 	cc.mu.Unlock()
+
+	// Start progress reporter if enabled
+	if cc.progress != nil {
+		cc.progress.Start()
+		defer cc.progress.Stop()
+	}
 
 	// Validate and normalize the start URL
 	if !url.IsValidURL(startURL) {
@@ -369,6 +396,11 @@ func (cc *ConcurrentCrawler) CrawlConcurrent(startURL string) ([]CrawlResult, *C
 
 	// Start result collector
 	go cc.resultCollector()
+
+	// Start progress updater if progress reporting is enabled
+	if cc.progress != nil {
+		go cc.progressUpdater()
+	}
 
 	// Add the start URL to the job queue
 	cc.visited.Store(normalizedURL, true)
@@ -436,17 +468,35 @@ func (cc *ConcurrentCrawler) processJob(job CrawlJob, workerID int) {
 
 	cc.logger.Debug("Processing job", "worker_id", workerID, "url", job.URL, "depth", job.Depth)
 
+	// Apply rate limiting if progress reporter is configured with rate limiting
+	if cc.progress != nil {
+		cc.progress.WaitForRateLimit()
+	}
+
 	// Check depth limit
 	if cc.maxDepth > 0 && job.Depth >= cc.maxDepth {
 		cc.logger.Debug("Skipping job due to depth limit", "url", job.URL, "depth", job.Depth)
 		cc.mu.Lock()
 		cc.stats.SkippedURLs++
 		cc.mu.Unlock()
+
+		// Update progress statistics
+		if cc.progress != nil {
+			cc.progress.IncrementSkipped()
+		}
 		return
 	}
 
 	// Crawl the URL
 	result := cc.crawlSingleConcurrent(job.URL, job.Depth)
+
+	// Update progress statistics based on result
+	if cc.progress != nil {
+		cc.progress.IncrementProcessed()
+		if result.Error != nil {
+			cc.progress.IncrementFailed()
+		}
+	}
 
 	// Send result to collector
 	select {
@@ -537,6 +587,11 @@ func (cc *ConcurrentCrawler) addLinksToQueue(links []string, currentDepth int) {
 		cc.stats.TotalURLs++
 		cc.mu.Unlock()
 
+		// Update progress statistics
+		if cc.progress != nil {
+			cc.progress.IncrementDiscovered()
+		}
+
 		cc.logger.Debug("Added URL to queue", "url", link, "depth", currentDepth+1)
 	}
 }
@@ -595,4 +650,50 @@ func (cc *ConcurrentCrawler) GetStats() *CrawlStats {
 	defer cc.mu.RUnlock()
 	statsCopy := cc.stats
 	return &statsCopy
+}
+
+// progressUpdater periodically updates progress statistics
+func (cc *ConcurrentCrawler) progressUpdater() {
+	ticker := time.NewTicker(500 * time.Millisecond) // Update every 500ms
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			cc.updateProgressStats()
+		case <-cc.ctx.Done():
+			return
+		}
+	}
+}
+
+// updateProgressStats updates the progress reporter with current statistics
+func (cc *ConcurrentCrawler) updateProgressStats() {
+	if cc.progress == nil {
+		return
+	}
+
+	cc.mu.RLock()
+	totalURLs := int64(cc.stats.TotalURLs)
+	crawledURLs := int64(cc.stats.CrawledURLs)
+	failedURLs := int64(cc.stats.FailedURLs)
+	skippedURLs := int64(cc.stats.SkippedURLs)
+	cc.mu.RUnlock()
+
+	cc.activeJobsMu.Lock()
+	activeJobs := cc.activeJobs
+	cc.activeJobsMu.Unlock()
+
+	// Calculate queue size (approximation)
+	queueSize := len(cc.jobs)
+
+	// Update progress with current statistics
+	cc.progress.UpdateStats(
+		crawledURLs, // URLs processed
+		totalURLs,   // URLs discovered
+		failedURLs,  // URLs failed
+		skippedURLs, // URLs skipped
+		activeJobs,  // Active workers (approximation)
+		queueSize,   // Queue size
+	)
 }
