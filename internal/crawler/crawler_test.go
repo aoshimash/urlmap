@@ -5,6 +5,8 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/aoshimash/crawld/internal/progress"
 )
 
 func TestMain(m *testing.M) {
@@ -342,5 +344,87 @@ func BenchmarkCrawler_Concurrent(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _, _ = cc.CrawlConcurrent("https://httpbin.org/html")
+	}
+}
+
+// TestConcurrentCrawler_WithProgress tests concurrent crawler with progress reporting
+func TestConcurrentCrawler_WithProgress(t *testing.T) {
+	// Create a config with progress reporting enabled
+	config := &Config{
+		MaxDepth:     1,
+		SameDomain:   true,
+		UserAgent:    "test-agent",
+		Workers:      2,
+		ShowProgress: true,
+		ProgressConfig: &progress.Config{
+			ShowProgress: true,
+			RateLimit:    0, // No rate limiting for test
+		},
+	}
+
+	crawler, err := NewConcurrentCrawler(config)
+	if err != nil {
+		t.Fatalf("Failed to create concurrent crawler: %v", err)
+	}
+
+	// Check that progress reporter is initialized
+	if crawler.progress == nil {
+		t.Error("Expected progress reporter to be initialized")
+	}
+
+	if crawler.progress.IsRateLimited() {
+		t.Error("Expected rate limiting to be disabled")
+	}
+}
+
+// TestConcurrentCrawler_WithRateLimit tests concurrent crawler with rate limiting
+func TestConcurrentCrawler_WithRateLimit(t *testing.T) {
+	// Create a config with rate limiting enabled
+	config := &Config{
+		MaxDepth:     1,
+		SameDomain:   true,
+		UserAgent:    "test-agent",
+		Workers:      2,
+		ShowProgress: true,
+		ProgressConfig: &progress.Config{
+			ShowProgress: true,
+			RateLimit:    10.0, // 10 requests per second
+		},
+	}
+
+	crawler, err := NewConcurrentCrawler(config)
+	if err != nil {
+		t.Fatalf("Failed to create concurrent crawler: %v", err)
+	}
+
+	// Check that progress reporter is initialized with rate limiting
+	if crawler.progress == nil {
+		t.Error("Expected progress reporter to be initialized")
+	}
+
+	if !crawler.progress.IsRateLimited() {
+		t.Error("Expected rate limiting to be enabled")
+	}
+}
+
+// TestConcurrentCrawler_WithoutProgress tests concurrent crawler without progress reporting
+func TestConcurrentCrawler_WithoutProgress(t *testing.T) {
+	// Create a config with progress reporting disabled
+	config := &Config{
+		MaxDepth:     1,
+		SameDomain:   true,
+		UserAgent:    "test-agent",
+		Workers:      2,
+		ShowProgress: false,
+	}
+
+	crawler, err := NewConcurrentCrawler(config)
+	if err != nil {
+		t.Fatalf("Failed to create concurrent crawler: %v", err)
+	}
+
+	// Check that progress reporter is not initialized
+	if crawler.progress != nil {
+		t.Error("Expected progress reporter to not be initialized")
 	}
 }
