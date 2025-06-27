@@ -1,6 +1,6 @@
-# Contributing to crawld
+# Contributing to urlmap
 
-Thank you for your interest in contributing to crawld! We welcome contributions from everyone, whether you're fixing bugs, adding features, improving documentation, or just asking questions.
+Thank you for your interest in contributing to urlmap! We welcome contributions from everyone, whether you're fixing bugs, adding features, improving documentation, or just asking questions.
 
 ## 📋 Table of Contents
 
@@ -48,11 +48,11 @@ If you're new to contributing to open source projects:
 
 ```bash
 # Fork the repository on GitHub, then clone your fork
-git clone https://github.com/YOUR_USERNAME/crawld.git
-cd crawld
+git clone https://github.com/YOUR_USERNAME/urlmap.git
+cd urlmap
 
-# Add the original repository as upstream
-git remote add upstream https://github.com/aoshimash/crawld.git
+# Add the upstream repository
+git remote add upstream https://github.com/aoshimash/urlmap.git
 ```
 
 ### 2. Install Dependencies
@@ -69,7 +69,7 @@ go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 
 ```bash
 # Build the project
-go build -o crawld ./cmd/crawld
+go build -o urlmap ./cmd/urlmap
 
 # Run tests
 go test ./...
@@ -128,8 +128,8 @@ func ExtractLinks(html string, baseURL *url.URL) ([]string, error) {
 Follow the established project structure:
 
 ```
-crawld/
-├── cmd/crawld/          # CLI application entry point
+urlmap/
+├── cmd/urlmap/          # CLI application entry point
 ├── internal/            # Private application code
 │   ├── crawler/         # Core crawling logic
 │   ├── parser/          # HTML parsing
@@ -393,7 +393,7 @@ Reviews focus on:
 Clear description of the issue.
 
 ## Steps to Reproduce
-1. Run command: `crawld ...`
+1. Run command: `urlmap ...`
 2. Observe error: ...
 
 ## Expected Behavior
@@ -405,7 +405,7 @@ What actually happens.
 ## Environment
 - OS: [e.g., macOS 12.0]
 - Go version: [e.g., 1.21.0]
-- crawld version: [e.g., v1.0.0]
+- urlmap version: [e.g., v1.0.0]
 
 ## Additional Context
 Any other relevant information.
@@ -444,8 +444,8 @@ Contributors who make significant contributions will be:
 
 ## 📄 License
 
-By contributing to crawld, you agree that your contributions will be licensed under the MIT License.
+By contributing to urlmap, you agree that your contributions will be licensed under the MIT License.
 
----
+## 🙏 Acknowledgments
 
-Thank you for contributing to crawld! 🎉
+Thank you for contributing to urlmap! 🎉

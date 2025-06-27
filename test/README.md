@@ -17,7 +17,7 @@ test/
 ### Integration Tests (`test/integration/`)
 
 Integration tests verify the complete CLI functionality by:
-- Building and executing the crawld binary
+- Building and executing the urlmap binary
 - Testing various command-line flag combinations
 - Verifying output format and content
 - Testing error scenarios and edge cases
@@ -103,7 +103,7 @@ Tests use `httptest.Server` to create controlled test environments:
 
 ### Binary Building
 
-Tests automatically build the crawld binary:
+Tests automatically build the urlmap binary:
 - Built to temporary directory for each test run
 - Cleaned up automatically after tests complete
 - Uses same build process as production builds

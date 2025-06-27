@@ -74,16 +74,20 @@ func createTestServer() *httptest.Server {
 	return httptest.NewServer(mux)
 }
 
-func buildCrawldBinary(t *testing.T) string {
-	// Build the crawld binary
-	binaryPath := filepath.Join(os.TempDir(), "crawld-test")
-	cmd := exec.Command("go", "build", "-o", binaryPath, "../../cmd/crawld")
+func setupCLITest(t *testing.T) (string, func()) {
+	// Create temporary directory for test
+	tempDir := t.TempDir()
 
+	// Build the urlmap binary
+	binaryPath := filepath.Join(tempDir, "urlmap")
+	cmd := exec.Command("go", "build", "-o", binaryPath, "./cmd/urlmap")
 	if err := cmd.Run(); err != nil {
-		t.Fatalf("Failed to build crawld binary: %v", err)
+		t.Fatalf("Failed to build urlmap binary: %v", err)
 	}
 
-	return binaryPath
+	return binaryPath, func() {
+		os.Remove(binaryPath)
+	}
 }
 
 func TestCrawlCommand_BasicFunctionality(t *testing.T) {
@@ -92,8 +96,8 @@ func TestCrawlCommand_BasicFunctionality(t *testing.T) {
 	defer server.Close()
 
 	// Build binary
-	binaryPath := buildCrawldBinary(t)
-	defer os.Remove(binaryPath)
+	binaryPath, cleanup := setupCLITest(t)
+	defer cleanup()
 
 	// Run crawld command
 	cmd := exec.Command(binaryPath, server.URL)
@@ -116,8 +120,8 @@ func TestCrawlCommand_WithDepth(t *testing.T) {
 	defer server.Close()
 
 	// Build binary
-	binaryPath := buildCrawldBinary(t)
-	defer os.Remove(binaryPath)
+	binaryPath, cleanup := setupCLITest(t)
+	defer cleanup()
 
 	// Run crawld command with depth=2
 	cmd := exec.Command(binaryPath, "--depth=2", server.URL)
@@ -151,8 +155,8 @@ func TestCrawlCommand_WithVerboseFlag(t *testing.T) {
 	defer server.Close()
 
 	// Build binary
-	binaryPath := buildCrawldBinary(t)
-	defer os.Remove(binaryPath)
+	binaryPath, cleanup := setupCLITest(t)
+	defer cleanup()
 
 	// Run crawld command with verbose flag
 	cmd := exec.Command(binaryPath, "--verbose", server.URL)
@@ -179,8 +183,8 @@ func TestCrawlCommand_WithConcurrency(t *testing.T) {
 	defer server.Close()
 
 	// Build binary
-	binaryPath := buildCrawldBinary(t)
-	defer os.Remove(binaryPath)
+	binaryPath, cleanup := setupCLITest(t)
+	defer cleanup()
 
 	// Run crawld command with concurrency settings
 	cmd := exec.Command(binaryPath, "--concurrent=5", "--depth=2", server.URL)
@@ -199,8 +203,8 @@ func TestCrawlCommand_WithConcurrency(t *testing.T) {
 
 func TestCrawlCommand_InvalidURL(t *testing.T) {
 	// Build binary
-	binaryPath := buildCrawldBinary(t)
-	defer os.Remove(binaryPath)
+	binaryPath, cleanup := setupCLITest(t)
+	defer cleanup()
 
 	// Run crawld command with invalid URL
 	cmd := exec.Command(binaryPath, "not-a-valid-url")
@@ -219,8 +223,8 @@ func TestCrawlCommand_InvalidURL(t *testing.T) {
 
 func TestCrawlCommand_NonExistentHost(t *testing.T) {
 	// Build binary
-	binaryPath := buildCrawldBinary(t)
-	defer os.Remove(binaryPath)
+	binaryPath, cleanup := setupCLITest(t)
+	defer cleanup()
 
 	// Run crawld command with non-existent host
 	cmd := exec.Command(binaryPath, "http://non-existent-host-12345.example")
@@ -266,8 +270,8 @@ func TestCrawlCommand_NonExistentHost(t *testing.T) {
 
 func TestVersionCommand(t *testing.T) {
 	// Build binary
-	binaryPath := buildCrawldBinary(t)
-	defer os.Remove(binaryPath)
+	binaryPath, cleanup := setupCLITest(t)
+	defer cleanup()
 
 	// Run version command
 	cmd := exec.Command(binaryPath, "version")
@@ -296,8 +300,8 @@ func TestCrawlCommand_UserAgent(t *testing.T) {
 	defer server.Close()
 
 	// Build binary
-	binaryPath := buildCrawldBinary(t)
-	defer os.Remove(binaryPath)
+	binaryPath, cleanup := setupCLITest(t)
+	defer cleanup()
 
 	// Run crawld command with custom User-Agent
 	customUA := "TestBot/1.0"

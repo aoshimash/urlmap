@@ -44,36 +44,36 @@ jobs:
 
           # Linux amd64
           echo "Building for Linux amd64..."
-          GOOS=linux GOARCH=amd64 go build -ldflags="${LDFLAGS}" -o bin/crawld-linux-amd64 ./cmd/crawld
+          GOOS=linux GOARCH=amd64 go build -ldflags="${LDFLAGS}" -o bin/urlmap-linux-amd64 ./cmd/urlmap
 
           # Linux arm64
           echo "Building for Linux arm64..."
-          GOOS=linux GOARCH=arm64 go build -ldflags="${LDFLAGS}" -o bin/crawld-linux-arm64 ./cmd/crawld
+          GOOS=linux GOARCH=arm64 go build -ldflags="${LDFLAGS}" -o bin/urlmap-linux-arm64 ./cmd/urlmap
 
           # macOS amd64 (Intel)
           echo "Building for macOS amd64..."
-          GOOS=darwin GOARCH=amd64 go build -ldflags="${LDFLAGS}" -o bin/crawld-darwin-amd64 ./cmd/crawld
+          GOOS=darwin GOARCH=amd64 go build -ldflags="${LDFLAGS}" -o bin/urlmap-darwin-amd64 ./cmd/urlmap
 
           # macOS arm64 (Apple Silicon)
           echo "Building for macOS arm64..."
-          GOOS=darwin GOARCH=arm64 go build -ldflags="${LDFLAGS}" -o bin/crawld-darwin-arm64 ./cmd/crawld
+          GOOS=darwin GOARCH=arm64 go build -ldflags="${LDFLAGS}" -o bin/urlmap-darwin-arm64 ./cmd/urlmap
 
           # Windows amd64
           echo "Building for Windows amd64..."
-          GOOS=windows GOARCH=amd64 go build -ldflags="${LDFLAGS}" -o bin/crawld-windows-amd64.exe ./cmd/crawld
+          GOOS=windows GOARCH=amd64 go build -ldflags="${LDFLAGS}" -o bin/urlmap-windows-amd64.exe ./cmd/urlmap
 
       - name: Create compressed archives
         run: |
           cd bin
 
           # Create tar.gz archives for Unix systems
-          tar -czf crawld-linux-amd64.tar.gz crawld-linux-amd64
-          tar -czf crawld-linux-arm64.tar.gz crawld-linux-arm64
-          tar -czf crawld-darwin-amd64.tar.gz crawld-darwin-amd64
-          tar -czf crawld-darwin-arm64.tar.gz crawld-darwin-arm64
+          tar -czf urlmap-linux-amd64.tar.gz urlmap-linux-amd64
+          tar -czf urlmap-linux-arm64.tar.gz urlmap-linux-arm64
+          tar -czf urlmap-darwin-amd64.tar.gz urlmap-darwin-amd64
+          tar -czf urlmap-darwin-arm64.tar.gz urlmap-darwin-arm64
 
           # Create zip archive for Windows
-          zip crawld-windows-amd64.zip crawld-windows-amd64.exe
+          zip urlmap-windows-amd64.zip urlmap-windows-amd64.exe
 
       - name: Generate checksums
         run: |
@@ -100,7 +100,7 @@ jobs:
             else
               echo "## Initial Release" > release_notes.txt
               echo "" >> release_notes.txt
-              echo "This is the first release of crawld." >> release_notes.txt
+              echo "This is the first release of urlmap." >> release_notes.txt
             fi
           fi
 
@@ -111,20 +111,20 @@ jobs:
           echo "" >> release_notes.txt
           echo "**Linux (amd64):**" >> release_notes.txt
           echo '```bash' >> release_notes.txt
-          echo "curl -L https://github.com/aoshimash/crawld/releases/download/${{ steps.version.outputs.version }}/crawld-linux-amd64.tar.gz | tar -xz" >> release_notes.txt
+          echo "curl -L https://github.com/aoshimash/urlmap/releases/download/${{ steps.version.outputs.version }}/urlmap-linux-amd64.tar.gz | tar -xz" >> release_notes.txt
           echo '```' >> release_notes.txt
           echo "" >> release_notes.txt
           echo "**macOS (Apple Silicon):**" >> release_notes.txt
           echo '```bash' >> release_notes.txt
-          echo "curl -L https://github.com/aoshimash/crawld/releases/download/${{ steps.version.outputs.version }}/crawld-darwin-arm64.tar.gz | tar -xz" >> release_notes.txt
+          echo "curl -L https://github.com/aoshimash/urlmap/releases/download/${{ steps.version.outputs.version }}/urlmap-darwin-arm64.tar.gz | tar -xz" >> release_notes.txt
           echo '```' >> release_notes.txt
           echo "" >> release_notes.txt
           echo "**Windows:**" >> release_notes.txt
-          echo "Download and extract \`crawld-windows-amd64.zip\`" >> release_notes.txt
+          echo "Download and extract \`urlmap-windows-amd64.zip\`" >> release_notes.txt
           echo "" >> release_notes.txt
           echo "### Verify checksums:" >> release_notes.txt
           echo '```bash' >> release_notes.txt
-          echo "curl -L https://github.com/aoshimash/crawld/releases/download/${{ steps.version.outputs.version }}/checksums.txt" >> release_notes.txt
+          echo "curl -L https://github.com/aoshimash/urlmap/releases/download/${{ steps.version.outputs.version }}/checksums.txt" >> release_notes.txt
           echo '```' >> release_notes.txt
 
       - name: Create GitHub Release
@@ -134,11 +134,11 @@ jobs:
           name: Release ${{ steps.version.outputs.version }}
           body_path: release_notes.txt
           files: |
-            bin/crawld-linux-amd64.tar.gz
-            bin/crawld-linux-arm64.tar.gz
-            bin/crawld-darwin-amd64.tar.gz
-            bin/crawld-darwin-arm64.tar.gz
-            bin/crawld-windows-amd64.zip
+            bin/urlmap-linux-amd64.tar.gz
+            bin/urlmap-linux-arm64.tar.gz
+            bin/urlmap-darwin-amd64.tar.gz
+            bin/urlmap-darwin-arm64.tar.gz
+            bin/urlmap-windows-amd64.zip
             bin/checksums.txt
           draft: false
           prerelease: ${{ contains(steps.version.outputs.version, '-') }}
@@ -149,17 +149,17 @@ jobs:
         run: |
           # Test version output for each binary
           echo "Testing Linux amd64 binary..."
-          file bin/crawld-linux-amd64
+          file bin/urlmap-linux-amd64
 
           echo "Testing macOS amd64 binary..."
-          file bin/crawld-darwin-amd64
+          file bin/urlmap-darwin-amd64
 
           echo "Testing Windows binary..."
-          file bin/crawld-windows-amd64.exe
+          file bin/urlmap-windows-amd64.exe
 
           # Quick help test (using linux binary since we're on ubuntu)
           echo "Testing help command..."
-          ./bin/crawld-linux-amd64 --help || true
+          ./bin/urlmap-linux-amd64 --help || true
 
           echo "Testing version command..."
-          ./bin/crawld-linux-amd64 version || true
+          ./bin/urlmap-linux-amd64 version || true

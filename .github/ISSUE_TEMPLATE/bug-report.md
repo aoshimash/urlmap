@@ -1,16 +1,16 @@
 ---
 name: Bug Report
-about: Report a bug or unexpected behavior in crawld
-title: '[BUG] '
-labels: ['bug']
-assignees: ''
+about: Report a bug or unexpected behavior in urlmap
+title: "[BUG] "
+labels: ["bug", "needs-triage"]
+assignees: []
 ---
 
-## 🐛 Bug Description
+## 🐛 Problem Description
 <!-- A clear and concise description of what the bug is -->
 
 ## 🔄 Steps to Reproduce
-1. Run command: `crawld [options] [URL]`
+1. Run command: `urlmap [options] [URL]`
 2. With parameters: `--depth=X --verbose`
 3. See error/unexpected behavior
 
@@ -23,8 +23,8 @@ assignees: ''
 ## 🖥 Environment
 - **OS**: [e.g., macOS 14.0, Ubuntu 22.04, Windows 11]
 - **Go Version**: [e.g., 1.21.5]
-- **crawld Version**: [e.g., v1.0.0 or commit hash]
-- **Command Used**: `crawld [full command with flags]`
+- **urlmap Version**: [e.g., v1.0.0 or commit hash]
+- **Command Used**: `urlmap [full command with flags]`
 
 ## 📝 Logs/Output
 <!-- Include relevant logs or command output -->

@@ -8,10 +8,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/aoshimash/crawld/internal/config"
-	"github.com/aoshimash/crawld/internal/crawler"
-	"github.com/aoshimash/crawld/internal/output"
-	"github.com/aoshimash/crawld/internal/progress"
+	"github.com/aoshimash/urlmap/internal/config"
+	"github.com/aoshimash/urlmap/internal/crawler"
+	"github.com/aoshimash/urlmap/internal/output"
+	"github.com/aoshimash/urlmap/internal/progress"
 	"github.com/spf13/cobra"
 )
 
@@ -34,17 +34,17 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "crawld <URL>",
-	Short: "A web crawler daemon",
-	Long: `Crawld is a web crawler daemon for collecting and processing web content.
+	Use:   "urlmap <URL>",
+	Short: "A web crawler for mapping site URLs",
+	Long: `Urlmap is a web crawler for discovering and mapping all URLs within a website.
 
-This tool crawls web pages starting from a given URL and can be configured
-with various options to control the crawling behavior.
+This tool crawls web pages starting from a given URL and discovers all links
+within the same domain, creating a comprehensive URL map of the site.
 
 Examples:
-  crawld https://example.com
-  crawld -d 3 -c 5 https://example.com
-  crawld --verbose --user-agent "MyBot/1.0" https://example.com`,
+  urlmap https://example.com
+  urlmap -d 3 -c 5 https://example.com
+  urlmap --verbose --user-agent "MyBot/1.0" https://example.com`,
 	Args: cobra.ExactArgs(1), // Require exactly one URL argument
 	RunE: runCrawl,
 }
@@ -54,7 +54,7 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print version information",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("crawld version %s\n", version)
+		fmt.Printf("urlmap version %s\n", version)
 		fmt.Printf("commit: %s\n", commit)
 		fmt.Printf("built: %s\n", date)
 	},
@@ -64,7 +64,7 @@ func init() {
 	// Add flags to the root command
 	rootCmd.Flags().IntVarP(&depth, "depth", "d", 0, "Maximum crawl depth (0 = unlimited)")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose logging")
-	rootCmd.Flags().StringVarP(&userAgent, "user-agent", "u", "crawld/1.0.0 (+https://github.com/aoshimash/crawld)", "Custom User-Agent string")
+	rootCmd.Flags().StringVarP(&userAgent, "user-agent", "u", "urlmap/1.0.0 (+https://github.com/aoshimash/urlmap)", "Custom User-Agent string")
 	rootCmd.Flags().IntVarP(&concurrent, "concurrent", "c", 10, "Number of concurrent requests")
 	rootCmd.Flags().BoolVarP(&showProgress, "progress", "p", true, "Show progress indicators (default: true)")
 	rootCmd.Flags().Float64VarP(&rateLimit, "rate-limit", "r", 0, "Rate limit requests per second (0 = no limit)")

@@ -16,7 +16,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}Building crawld release binaries...${NC}"
+echo -e "${GREEN}Building urlmap release binaries...${NC}"
 echo "Version: $VERSION"
 echo "Commit: $COMMIT"
 echo "Build Date: $BUILD_DATE"
@@ -33,10 +33,10 @@ build_platform() {
     local os=$1
     local arch=$2
     local ext=$3
-    local filename="crawld-${os}-${arch}${ext}"
+    local filename="urlmap-${os}-${arch}${ext}"
 
     echo -e "${YELLOW}Building for ${os}/${arch}...${NC}"
-    GOOS=$os GOARCH=$arch go build -ldflags="${LDFLAGS}" -o "bin/${filename}" ./cmd/crawld
+    GOOS=$os GOARCH=$arch go build -ldflags="${LDFLAGS}" -o "bin/${filename}" ./cmd/urlmap
 
     if [ $? -eq 0 ]; then
         echo -e "${GREEN}✓ ${filename} built successfully${NC}"
@@ -59,26 +59,26 @@ echo -e "${GREEN}Creating compressed archives...${NC}"
 cd bin
 
 # Create tar.gz archives for Unix systems
-tar -czf crawld-linux-amd64.tar.gz crawld-linux-amd64
-tar -czf crawld-linux-arm64.tar.gz crawld-linux-arm64
-tar -czf crawld-darwin-amd64.tar.gz crawld-darwin-amd64
-tar -czf crawld-darwin-arm64.tar.gz crawld-darwin-arm64
+tar -czf urlmap-linux-amd64.tar.gz urlmap-linux-amd64
+tar -czf urlmap-linux-arm64.tar.gz urlmap-linux-arm64
+tar -czf urlmap-darwin-amd64.tar.gz urlmap-darwin-amd64
+tar -czf urlmap-darwin-arm64.tar.gz urlmap-darwin-arm64
 
 # Create zip archive for Windows
-zip -q crawld-windows-amd64.zip crawld-windows-amd64.exe
+zip -q urlmap-windows-amd64.zip urlmap-windows-amd64.exe
 
 echo -e "${GREEN}Generating checksums...${NC}"
 sha256sum *.tar.gz *.zip > checksums.txt
 
 echo
 echo -e "${GREEN}Build complete! Files created:${NC}"
-ls -la crawld-*
+ls -la urlmap-*
 echo
 echo -e "${GREEN}Checksums:${NC}"
 cat checksums.txt
 
 echo
 echo -e "${GREEN}Test version output:${NC}"
-./crawld-linux-amd64 version || echo -e "${RED}Failed to run version command${NC}"
+./urlmap-linux-amd64 version || echo -e "${RED}Failed to run version command${NC}"
 
 cd ..

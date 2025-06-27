@@ -1,9 +1,9 @@
 ---
-name: Feature/Task Implementation
-about: Template for implementing new features or tasks in crawld
-title: '[TASK] '
-labels: ['enhancement', 'task']
-assignees: ''
+name: Feature Request / Task
+about: Template for implementing new features or tasks in urlmap
+title: "[FEATURE] "
+labels: ["enhancement", "needs-triage"]
+assignees: []
 ---
 
 ## 📋 Task Overview

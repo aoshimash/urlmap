@@ -3,7 +3,6 @@ description: "Project structure and coding conventions for the crawld Go project
 globs: ["**/*.go", "go.mod", "go.sum"]
 alwaysApply: true
 ---
-
 # Project Structure Guidelines
 
 ## Directory Structure
@@ -65,8 +64,8 @@ import (
     "github.com/PuerkitoBio/goquery"
 
     // Internal packages
-    "github.com/aoshimash/crawld/internal/crawler"
-    "github.com/aoshimash/crawld/pkg/utils"
+    "github.com/aoshimash/urlmap/internal/crawler"
+    "github.com/aoshimash/urlmap/pkg/utils"
 )
 ```
 
