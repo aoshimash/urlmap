@@ -338,7 +338,9 @@ func NewConcurrentCrawler(config *Config) (*ConcurrentCrawler, error) {
 // CrawlConcurrent performs concurrent crawling starting from the given URL
 func (cc *ConcurrentCrawler) CrawlConcurrent(startURL string) ([]CrawlResult, *CrawlStats, error) {
 	cc.logger.Info("Starting concurrent crawl", "start_url", startURL, "max_depth", cc.maxDepth, "workers", cc.workers)
+	cc.mu.Lock()
 	cc.stats.StartTime = time.Now()
+	cc.mu.Unlock()
 
 	// Validate and normalize the start URL
 	if !url.IsValidURL(startURL) {
@@ -370,7 +372,9 @@ func (cc *ConcurrentCrawler) CrawlConcurrent(startURL string) ([]CrawlResult, *C
 
 	// Add the start URL to the job queue
 	cc.visited.Store(normalizedURL, true)
+	cc.mu.Lock()
 	cc.stats.TotalURLs = 1
+	cc.mu.Unlock()
 	cc.addJob(CrawlJob{URL: normalizedURL, Depth: 0})
 
 	// Wait for all jobs to complete
@@ -380,7 +384,11 @@ func (cc *ConcurrentCrawler) CrawlConcurrent(startURL string) ([]CrawlResult, *C
 	// Wait a bit for result collector to finish
 	time.Sleep(100 * time.Millisecond)
 
-	cc.stats.TotalTime = time.Since(cc.stats.StartTime)
+	cc.mu.Lock()
+	startTime := cc.stats.StartTime
+	cc.stats.TotalTime = time.Since(startTime)
+	cc.mu.Unlock()
+
 	cc.logger.Info("Concurrent crawling completed",
 		"total_urls", cc.stats.TotalURLs,
 		"crawled_urls", cc.stats.CrawledURLs,
