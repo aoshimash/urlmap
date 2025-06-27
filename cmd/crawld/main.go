@@ -2,10 +2,13 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"net/url"
 	"os"
 
 	"github.com/aoshimash/crawld/internal/config"
+	"github.com/aoshimash/crawld/internal/crawler"
+	"github.com/aoshimash/crawld/internal/output"
 	"github.com/spf13/cobra"
 )
 
@@ -74,24 +77,44 @@ func runCrawl(cmd *cobra.Command, args []string) error {
 	// Set up logging based on verbose flag
 	loggingConfig := config.NewLoggingConfig(verbose)
 	loggingConfig.SetupLogger()
+	logger := slog.Default()
 
 	// Log the start of crawl operation with structured logging
 	config.LogCrawlStart(targetURL, depth, concurrent, userAgent)
 
-	// TODO: Implement actual crawling logic
-	// Output goes to stdout, logs go to stderr
-	fmt.Printf("Crawling %s with depth %d and %d concurrent requests\n", targetURL, depth, concurrent)
-	fmt.Printf("User-Agent: %s\n", userAgent)
-
-	// Example of structured logging calls
-	if verbose {
-		config.LogInfo("Verbose logging enabled")
+	// Create crawler configuration
+	crawlerConfig := &crawler.Config{
+		MaxDepth:   depth,
+		SameDomain: true, // For now, limit to same domain
+		UserAgent:  userAgent,
+		Logger:     logger,
 	}
 
-	// Example of how to log progress and errors (for future implementation)
-	// config.LogCrawlProgress(targetURL, 0, 200)
-	// config.LogCrawlError(targetURL, 0, fmt.Errorf("example error"))
-	// config.LogCrawlComplete(targetURL, 1, 0)
+	// Create and configure the crawler
+	c, err := crawler.New(crawlerConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create crawler: %w", err)
+	}
+
+	// Perform the crawl
+	results, stats, err := c.CrawlRecursive(targetURL)
+	if err != nil {
+		return fmt.Errorf("crawl failed: %w", err)
+	}
+
+	// Extract all URLs from the results
+	var allURLs []string
+	for _, result := range results {
+		allURLs = append(allURLs, result.URL)
+	}
+
+	// Output URLs to stdout (logs are already going to stderr)
+	if err := output.OutputURLs(allURLs); err != nil {
+		return fmt.Errorf("failed to output URLs: %w", err)
+	}
+
+	// Log completion stats to stderr
+	config.LogCrawlComplete(targetURL, stats.CrawledURLs, stats.FailedURLs)
 
 	return nil
 }
