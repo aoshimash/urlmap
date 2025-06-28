@@ -111,7 +111,7 @@ func TestCrawlCommand_BasicFunctionality(t *testing.T) {
 	binaryPath, cleanup := setupCLITest(t)
 	defer cleanup()
 
-	// Run crawld command
+	// Run urlmap command
 	cmd := exec.Command(binaryPath, server.URL)
 	output, err := cmd.Output()
 
@@ -135,7 +135,7 @@ func TestCrawlCommand_WithDepth(t *testing.T) {
 	binaryPath, cleanup := setupCLITest(t)
 	defer cleanup()
 
-	// Run crawld command with depth=2
+	// Run urlmap command with depth=2
 	cmd := exec.Command(binaryPath, "--depth=2", server.URL)
 	output, err := cmd.Output()
 
@@ -170,7 +170,7 @@ func TestCrawlCommand_WithVerboseFlag(t *testing.T) {
 	binaryPath, cleanup := setupCLITest(t)
 	defer cleanup()
 
-	// Run crawld command with verbose flag
+	// Run urlmap command with verbose flag
 	cmd := exec.Command(binaryPath, "--verbose", server.URL)
 
 	// Capture both stdout and stderr
@@ -198,7 +198,7 @@ func TestCrawlCommand_WithConcurrency(t *testing.T) {
 	binaryPath, cleanup := setupCLITest(t)
 	defer cleanup()
 
-	// Run crawld command with concurrency settings
+	// Run urlmap command with concurrency settings
 	cmd := exec.Command(binaryPath, "--concurrent=5", "--depth=2", server.URL)
 	output, err := cmd.Output()
 
@@ -218,7 +218,7 @@ func TestCrawlCommand_InvalidURL(t *testing.T) {
 	binaryPath, cleanup := setupCLITest(t)
 	defer cleanup()
 
-	// Run crawld command with invalid URL
+	// Run urlmap command with invalid URL
 	cmd := exec.Command(binaryPath, "not-a-valid-url")
 	output, err := cmd.CombinedOutput()
 
@@ -238,7 +238,7 @@ func TestCrawlCommand_NonExistentHost(t *testing.T) {
 	binaryPath, cleanup := setupCLITest(t)
 	defer cleanup()
 
-	// Run crawld command with non-existent host
+	// Run urlmap command with non-existent host
 	cmd := exec.Command(binaryPath, "http://non-existent-host-12345.example")
 
 	// Set a timeout for the command execution
@@ -315,7 +315,7 @@ func TestCrawlCommand_UserAgent(t *testing.T) {
 	binaryPath, cleanup := setupCLITest(t)
 	defer cleanup()
 
-	// Run crawld command with custom User-Agent
+	// Run urlmap command with custom User-Agent
 	customUA := "TestBot/1.0"
 	cmd := exec.Command(binaryPath, "--user-agent="+customUA, server.URL)
 	output, err := cmd.Output()

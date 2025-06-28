@@ -23,7 +23,7 @@ type TestEnvironment struct {
 // SetupTestEnvironment creates a complete test environment
 func SetupTestEnvironment(t *testing.T) *TestEnvironment {
 	// Create temporary directory
-	tempDir, err := os.MkdirTemp("", "crawld-test-*")
+	tempDir, err := os.MkdirTemp("", "urlmap-test-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
@@ -164,8 +164,8 @@ func BuildTestBinary(t *testing.T) string {
 	return binaryPath
 }
 
-// RunCrawldCommand runs the crawld command with given arguments
-func RunCrawldCommand(binaryPath string, args ...string) (string, string, error) {
+// RunUrlmapCommand runs the urlmap command with given arguments
+func RunUrlmapCommand(binaryPath string, args ...string) (string, string, error) {
 	cmd := exec.Command(binaryPath, args...)
 
 	// Set a reasonable timeout

@@ -59,8 +59,8 @@ func TestDefaultConfig(t *testing.T) {
 		t.Error("Expected SameDomain to be true")
 	}
 
-	if config.UserAgent != "crawld/1.0" {
-		t.Errorf("Expected UserAgent 'crawld/1.0', got %s", config.UserAgent)
+	if config.UserAgent != "urlmap/1.0" {
+		t.Errorf("Expected UserAgent 'urlmap/1.0', got %s", config.UserAgent)
 	}
 
 	if config.Timeout != 30*time.Second {
