@@ -406,6 +406,18 @@ Statistics include:
 - Implements proper timeout handling to prevent hanging requests
 - Rate limiting capabilities help prevent accidental DoS
 
+## 🤖 AI-Driven Development
+
+This project serves as a practical experiment in AI-driven software development. As part of this exploration, the entire codebase was implemented using Cursor AI agent, including:
+
+- Project design and architecture
+- Issue creation and project management
+- Pull request creation and code reviews
+- Implementation of all features and functionality
+- Documentation and README creation
+
+**Important Note**: There is not a single line of code written by a human in this repository. Everything was generated and managed by AI tools, demonstrating the current capabilities of AI-assisted development.
+
 ## 📄 License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
@@ -427,5 +439,3 @@ Future enhancements planned:
 - [ ] Integration with popular data analysis tools
 
 ---
-
-**Made with ❤️ by the urlmap team**
