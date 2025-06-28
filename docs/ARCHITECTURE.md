@@ -1,6 +1,6 @@
-# crawld Architecture
+# urlmap Architecture
 
-This document provides a comprehensive overview of the crawld architecture, design decisions, and implementation details.
+This document provides a comprehensive overview of the urlmap architecture, design decisions, and implementation details.
 
 ## 📋 Table of Contents
 
@@ -17,7 +17,7 @@ This document provides a comprehensive overview of the crawld architecture, desi
 
 ## 🏗 Overview
 
-crawld is a concurrent web crawler designed for discovering and extracting links from websites. It follows a modular architecture with clear separation of concerns, enabling maintainability, testability, and extensibility.
+urlmap is a concurrent web crawler designed for discovering and extracting links from websites. It follows a modular architecture with clear separation of concerns, enabling maintainability, testability, and extensibility.
 
 ### Key Design Principles
 

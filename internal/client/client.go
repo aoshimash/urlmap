@@ -10,7 +10,7 @@ import (
 
 const (
 	// DefaultUserAgent is the default User-Agent string
-	DefaultUserAgent = "crawld/1.0.0 (+https://github.com/aoshimash/crawld)"
+	DefaultUserAgent = "urlmap/1.0.0 (+https://github.com/aoshimash/urlmap)"
 	// DefaultTimeout is the default HTTP timeout
 	DefaultTimeout = 30 * time.Second
 	// DefaultRetryCount is the default number of retry attempts

@@ -53,7 +53,7 @@ func TestRootCommand(t *testing.T) {
 func TestVersionCommand(t *testing.T) {
 	// Create a new command instance for isolated testing
 	cmd := &cobra.Command{
-		Use:   "crawld",
+		Use:   "urlmap",
 		Short: "Test command",
 	}
 
@@ -61,7 +61,7 @@ func TestVersionCommand(t *testing.T) {
 		Use:   "version",
 		Short: "Print version information",
 		Run: func(cmd *cobra.Command, args []string) {
-			cmd.Printf("crawld version %s\n", version)
+			cmd.Printf("urlmap version %s\n", version)
 			cmd.Printf("commit: %s\n", commit)
 			cmd.Printf("built: %s\n", date)
 		},
@@ -80,8 +80,8 @@ func TestVersionCommand(t *testing.T) {
 	}
 
 	output := buf.String()
-	if !strings.Contains(output, "crawld version") {
-		t.Errorf("version output should contain 'crawld version', got: %s", output)
+	if !strings.Contains(output, "urlmap version") {
+		t.Errorf("version output should contain 'urlmap version', got: %s", output)
 	}
 	if !strings.Contains(output, "commit:") {
 		t.Errorf("version output should contain 'commit:', got: %s", output)
@@ -95,12 +95,12 @@ func TestFlagDefaults(t *testing.T) {
 	// Reset flags to default values
 	depth = 0
 	verbose = false
-	userAgent = "crawld/1.0.0 (+https://github.com/aoshimash/crawld)"
+	userAgent = "urlmap/1.0.0 (+https://github.com/aoshimash/urlmap)"
 	concurrent = 10
 
 	// Create a new command instance for isolated testing
 	cmd := &cobra.Command{
-		Use:  "crawld <URL>",
+		Use:  "urlmap <URL>",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Test default values
@@ -110,8 +110,8 @@ func TestFlagDefaults(t *testing.T) {
 			if verbose != false {
 				t.Errorf("verbose default should be false, got: %v", verbose)
 			}
-			if userAgent != "crawld/1.0.0 (+https://github.com/aoshimash/crawld)" {
-				t.Errorf("userAgent default should be 'crawld/1.0.0 (+https://github.com/aoshimash/crawld)', got: %s", userAgent)
+			if userAgent != "urlmap/1.0.0 (+https://github.com/aoshimash/urlmap)" {
+				t.Errorf("userAgent default should be 'urlmap/1.0.0 (+https://github.com/aoshimash/urlmap)', got: %s", userAgent)
 			}
 			if concurrent != 10 {
 				t.Errorf("concurrent default should be 10, got: %d", concurrent)
@@ -122,7 +122,7 @@ func TestFlagDefaults(t *testing.T) {
 
 	cmd.Flags().IntVarP(&depth, "depth", "d", 0, "Maximum crawl depth (0 = unlimited)")
 	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose logging")
-	cmd.Flags().StringVarP(&userAgent, "user-agent", "u", "crawld/1.0.0 (+https://github.com/aoshimash/crawld)", "Custom User-Agent string")
+	cmd.Flags().StringVarP(&userAgent, "user-agent", "u", "urlmap/1.0.0 (+https://github.com/aoshimash/urlmap)", "Custom User-Agent string")
 	cmd.Flags().IntVarP(&concurrent, "concurrent", "c", 10, "Number of concurrent requests")
 
 	cmd.SetArgs([]string{"https://example.com"})
@@ -165,11 +165,11 @@ func TestFlagParsing(t *testing.T) {
 			// Reset flags
 			depth = 0
 			verbose = false
-			userAgent = "crawld/1.0.0 (+https://github.com/aoshimash/crawld)"
+			userAgent = "urlmap/1.0.0 (+https://github.com/aoshimash/urlmap)"
 			concurrent = 10
 
 			cmd := &cobra.Command{
-				Use:  "crawld <URL>",
+				Use:  "urlmap <URL>",
 				Args: cobra.ExactArgs(1),
 				RunE: func(cmd *cobra.Command, args []string) error {
 					// Test parsed values
@@ -191,7 +191,7 @@ func TestFlagParsing(t *testing.T) {
 
 			cmd.Flags().IntVarP(&depth, "depth", "d", 0, "Maximum crawl depth (0 = unlimited)")
 			cmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose logging")
-			cmd.Flags().StringVarP(&userAgent, "user-agent", "u", "crawld/1.0.0 (+https://github.com/aoshimash/crawld)", "Custom User-Agent string")
+			cmd.Flags().StringVarP(&userAgent, "user-agent", "u", "urlmap/1.0.0 (+https://github.com/aoshimash/urlmap)", "Custom User-Agent string")
 			cmd.Flags().IntVarP(&concurrent, "concurrent", "c", 10, "Number of concurrent requests")
 
 			cmd.SetArgs(tt.args)
@@ -232,7 +232,7 @@ func TestExecute(t *testing.T) {
 	defer func() { os.Args = originalArgs }()
 
 	// Test version command
-	os.Args = []string{"crawld", "version"}
+	os.Args = []string{"urlmap", "version"}
 
 	// This test mainly ensures Execute() doesn't panic
 	// and runs without fatal errors

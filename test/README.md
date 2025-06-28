@@ -1,6 +1,6 @@
-# Integration and E2E Tests
+# Testing
 
-This directory contains integration tests and end-to-end (E2E) tests for crawld.
+This directory contains integration tests and end-to-end (E2E) tests for urlmap.
 
 ## Directory Structure
 

@@ -90,7 +90,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		MaxDepth:       3,
 		SameDomain:     true,
-		UserAgent:      "crawld/1.0",
+		UserAgent:      "urlmap/1.0",
 		Timeout:        30 * time.Second,
 		Logger:         slog.Default(),
 		Workers:        10,

@@ -1,6 +1,6 @@
-# crawld Performance Guide
+# urlmap Performance Guide
 
-This document provides comprehensive performance benchmarks, optimization techniques, and best practices for using crawld efficiently.
+This document provides comprehensive performance benchmarks, optimization techniques, and best practices for using urlmap efficiently.
 
 ## 📋 Table of Contents
 
@@ -15,7 +15,7 @@ This document provides comprehensive performance benchmarks, optimization techni
 
 ## 🏁 Performance Overview
 
-crawld is designed for high-performance web crawling with the following characteristics:
+urlmap is designed for high-performance web crawling with the following characteristics:
 
 ### Key Performance Features
 
@@ -39,7 +39,7 @@ crawld is designed for high-performance web crawling with the following characte
 - **Hardware**: MacBook Pro M2, 16GB RAM
 - **Network**: 100 Mbps connection
 - **Go Version**: 1.21.0
-- **crawld Version**: v1.0.0
+- **urlmap Version**: v1.0.0
 
 ### Small Sites (< 100 URLs)
 
@@ -88,7 +88,7 @@ crawld is designed for high-performance web crawling with the following characte
 # Test different worker counts
 for workers in 5 10 20 30 50; do
     echo "Testing with $workers workers:"
-    time crawld --concurrent $workers --depth 3 https://example.com > /dev/null
+    time urlmap --concurrent $workers --depth 3 https://example.com > /dev/null
 done
 ```
 
@@ -132,7 +132,7 @@ func (p *Parser) ExtractLinksFromString(content string) ([]string, error) {
 
 ```bash
 # Monitor connection reuse
-crawld --verbose https://example.com 2>&1 | grep -i "connection"
+urlmap --verbose https://example.com 2>&1 | grep -i "connection"
 ```
 
 #### Request Batching
@@ -147,10 +147,10 @@ crawld --verbose https://example.com 2>&1 | grep -i "connection"
 
 ```bash
 # Conservative approach for production
-crawld --concurrent 10 --rate-limit 5 --depth 5 https://example.com
+urlmap --concurrent 10 --rate-limit 5 --depth 5 https://example.com
 
 # Aggressive approach for testing (use with caution)
-crawld --concurrent 50 --rate-limit 20 --depth 3 https://example.com
+urlmap --concurrent 50 --rate-limit 20 --depth 3 https://example.com
 ```
 
 #### Adaptive Rate Limiting
@@ -165,27 +165,27 @@ crawld --concurrent 50 --rate-limit 20 --depth 3 https://example.com
 
 #### For Small Sites (< 100 URLs)
 ```bash
-crawld --concurrent 20 --depth 3 https://small-site.com
+urlmap --concurrent 20 --depth 3 https://small-site.com
 ```
 
 #### For Medium Sites (100-1,000 URLs)
 ```bash
-crawld --concurrent 30 --rate-limit 10 --depth 5 https://medium-site.com
+urlmap --concurrent 30 --rate-limit 10 --depth 5 https://medium-site.com
 ```
 
 #### For Large Sites (> 1,000 URLs)
 ```bash
-crawld --concurrent 50 --rate-limit 15 --depth 5 https://large-site.com --verbose
+urlmap --concurrent 50 --rate-limit 15 --depth 5 https://large-site.com --verbose
 ```
 
 #### Memory-Constrained Environments
 ```bash
-crawld --concurrent 10 --rate-limit 5 --depth 3 https://example.com
+urlmap --concurrent 10 --rate-limit 5 --depth 3 https://example.com
 ```
 
 #### High-Performance Scenarios
 ```bash
-crawld --concurrent 100 --rate-limit 50 --depth 3 https://fast-server.com
+urlmap --concurrent 100 --rate-limit 50 --depth 3 https://fast-server.com
 ```
 
 ### Environment-Specific Tuning
@@ -194,11 +194,11 @@ crawld --concurrent 100 --rate-limit 50 --depth 3 https://fast-server.com
 
 ```bash
 # Increase memory limit for large crawls
-docker run --memory=1g --rm ghcr.io/aoshimash/crawld:latest \
+docker run --memory=1g --rm ghcr.io/aoshimash/urlmap:latest \
   --concurrent 50 --depth 5 https://example.com
 
 # CPU optimization
-docker run --cpus="4.0" --rm ghcr.io/aoshimash/crawld:latest \
+docker run --cpus="4.0" --rm ghcr.io/aoshimash/urlmap:latest \
   --concurrent 40 https://example.com
 ```
 
@@ -206,7 +206,7 @@ docker run --cpus="4.0" --rm ghcr.io/aoshimash/crawld:latest \
 
 ```bash
 # Conservative settings for CI environments
-crawld --concurrent 5 --rate-limit 2 --depth 2 https://example.com
+urlmap --concurrent 5 --rate-limit 2 --depth 2 https://example.com
 ```
 
 ## 📈 Monitoring and Profiling
@@ -216,14 +216,14 @@ crawld --concurrent 5 --rate-limit 2 --depth 2 https://example.com
 #### Verbose Output Analysis
 
 ```bash
-crawld --verbose https://example.com 2>&1 | grep -E "(rate|time|memory)"
+urlmap --verbose https://example.com 2>&1 | grep -E "(rate|time|memory)"
 ```
 
 #### Statistics Tracking
 
 ```bash
 # Example output with performance metrics
-crawld --verbose https://example.com
+urlmap --verbose https://example.com
 # 2024/01/01 12:00:00 INFO Starting crawl url=https://example.com depth=0 workers=10
 # 2024/01/01 12:00:05 INFO Crawl completed total=150 successful=145 failed=5 time=5.2s
 ```
@@ -234,17 +234,17 @@ crawld --verbose https://example.com
 
 ```bash
 # Build with profiling support
-go build -o crawld-prof -tags=profile ./cmd/crawld
+go build -o urlmap-prof -tags=profile ./cmd/urlmap
 
 # Run with CPU profiling
-crawld-prof --concurrent 50 https://example.com
+urlmap-prof --concurrent 50 https://example.com
 ```
 
 #### Memory Profiling
 
 ```bash
 # Monitor memory usage during crawling
-go tool pprof crawld crawld.mem
+go tool pprof urlmap urlmap.mem
 ```
 
 #### Benchmarking
@@ -260,10 +260,10 @@ go test -bench=. -benchmem ./internal/crawler/
 
 ```bash
 # Monitor resource usage during crawling
-top -p $(pgrep crawld)
+top -p $(pgrep urlmap)
 
 # Memory usage tracking
-ps -o pid,rss,vsz -p $(pgrep crawld)
+ps -o pid,rss,vsz -p $(pgrep urlmap)
 
 # Network monitoring
 netstat -i
@@ -332,14 +332,14 @@ Total Memory ≈ Base (15MB) + (Workers × 2MB) + (URLs × 250 bytes)
 2. **Conservative Start**
    ```bash
    # Start with low concurrency
-   crawld --concurrent 5 --depth 2 https://example.com
+   urlmap --concurrent 5 --depth 2 https://example.com
    ```
 
 3. **Gradual Scaling**
    ```bash
    # Increase based on performance
-   crawld --concurrent 10 --depth 3 https://example.com
-   crawld --concurrent 20 --depth 5 https://example.com
+   urlmap --concurrent 10 --depth 3 https://example.com
+   urlmap --concurrent 20 --depth 5 https://example.com
    ```
 
 ### During Crawling
@@ -347,7 +347,7 @@ Total Memory ≈ Base (15MB) + (Workers × 2MB) + (URLs × 250 bytes)
 1. **Monitor Progress**
    ```bash
    # Use verbose mode for monitoring
-   crawld --verbose --concurrent 20 https://example.com
+   urlmap --verbose --concurrent 20 https://example.com
    ```
 
 2. **Resource Monitoring**
@@ -360,7 +360,7 @@ Total Memory ≈ Base (15MB) + (Workers × 2MB) + (URLs × 250 bytes)
 3. **Graceful Termination**
    ```bash
    # Use Ctrl+C for graceful shutdown
-   # crawld handles SIGINT properly
+   # urlmap handles SIGINT properly
    ```
 
 ### Post-Crawl Analysis
@@ -408,10 +408,10 @@ nslookup example.com
 **Diagnosis**:
 ```bash
 # Monitor memory usage
-ps aux | grep crawld
+ps aux | grep urlmap
 
 # Check for memory leaks
-valgrind crawld https://example.com
+valgrind urlmap https://example.com
 ```
 
 **Solutions**:
@@ -427,10 +427,10 @@ valgrind crawld https://example.com
 **Diagnosis**:
 ```bash
 # Check CPU usage
-top -p $(pgrep crawld)
+top -p $(pgrep urlmap)
 
 # Profile CPU usage
-go tool pprof crawld cpu.prof
+go tool pprof urlmap cpu.prof
 ```
 
 **Solutions**:
@@ -449,7 +449,7 @@ go tool pprof crawld cpu.prof
 netstat -s
 
 # Monitor connections
-ss -tuln | grep crawld
+ss -tuln | grep urlmap
 ```
 
 **Solutions**:
@@ -464,7 +464,7 @@ ss -tuln | grep crawld
 
 ```bash
 # Establish baseline performance
-time crawld --concurrent 10 --depth 2 https://example.com > baseline.txt
+time urlmap --concurrent 10 --depth 2 https://example.com > baseline.txt
 ```
 
 #### Load Scaling
@@ -473,7 +473,7 @@ time crawld --concurrent 10 --depth 2 https://example.com > baseline.txt
 # Test scaling characteristics
 for workers in 5 10 20 30 50; do
     echo "Workers: $workers"
-    time crawld --concurrent $workers --depth 3 https://example.com > /dev/null
+    time urlmap --concurrent $workers --depth 3 https://example.com > /dev/null
 done
 ```
 
@@ -481,16 +481,16 @@ done
 
 ```bash
 # Test maximum performance
-crawld --concurrent 100 --rate-limit 100 --depth 5 https://fast-server.com
+urlmap --concurrent 100 --rate-limit 100 --depth 5 https://fast-server.com
 ```
 
 #### Endurance Testing
 
 ```bash
 # Test long-running stability
-timeout 1h crawld --concurrent 20 --depth 10 https://large-site.com
+timeout 1h urlmap --concurrent 20 --depth 10 https://large-site.com
 ```
 
 ---
 
-This performance guide provides the foundation for optimizing crawld for your specific use cases and infrastructure requirements.
+This performance guide provides the foundation for optimizing urlmap for your specific use cases and infrastructure requirements.
