@@ -1,36 +1,57 @@
-# urlmap v0.2.0 - コードベース統一とドキュメント改善
+# urlmap v0.2.0 - Codebase Unification and Documentation Improvements
 
-🚀 **urlmap v0.2.0のリリースをお知らせします！**
+🚀 **We're excited to announce urlmap v0.2.0!**
 
-この維持版では、コードベースの完全な統一とドキュメントの改善が行われました。
+This maintenance release includes complete codebase unification and comprehensive documentation improvements.
 
-## ✨ このリリースの主な改善点
+## ✨ Key Improvements in This Release
 
-### 🔧 コードベース改善
-- **完全な名前統一**: すべてのcrawldへの参照をurlmapに統一し、一貫性を向上
-- **コードクリーンアップ**: 内部コンポーネント間の命名の一貫性を改善
+### 🔧 Codebase Improvements
+- **Complete Naming Unification**: Unified all remaining `crawld` references to `urlmap` for consistency
+- **Code Cleanup**: Improved naming consistency across internal components
+- **Enhanced Maintainability**: Better code organization and structure
 
-### 📚 ドキュメント改善
-- **AI駆動開発セクション追加**: READMEにAI駆動開発に関する新しいセクションを追加
-- **開発者体験向上**: より詳細で理解しやすいドキュメント
+### 📚 Documentation Enhancements
+- **AI-Driven Development Section**: Added comprehensive AI-driven development section to README
+- **Developer Experience**: More detailed and accessible documentation
+- **Improved Clarity**: Better explanations and examples throughout
 
-## 🆙 v0.1.0からの変更点
+## 🆙 Changes from v0.1.0
 
 ### Changed
-- refactor: すべての残りのcrawld参照をurlmapに置換
-- docs: READMEにAI駆動開発セクションを追加
+- refactor: Replace all remaining crawld references with urlmap
+- docs: Add AI-driven development section to README
+- improve: Enhanced code consistency across internal components
 
 ### Fixed
-- 内部コンポーネント間の命名不整合を解決
-- コードベース全体での一貫性を改善
+- Resolved naming inconsistencies between internal components
+- Improved overall codebase consistency and maintainability
 
-## 📦 インストール
+## 📦 Installation
 
-### バイナリダウンロード
+### Binary Download
+
+Download the latest binary from the [releases page](https://github.com/aoshimash/urlmap/releases/tag/v0.2.0):
 
 #### Linux (x86_64)
 ```bash
 curl -L -o urlmap.tar.gz https://github.com/aoshimash/urlmap/releases/download/v0.2.0/urlmap-linux-amd64.tar.gz
+tar -xzf urlmap.tar.gz
+chmod +x urlmap
+sudo mv urlmap /usr/local/bin/
+```
+
+#### Linux (ARM64)
+```bash
+curl -L -o urlmap.tar.gz https://github.com/aoshimash/urlmap/releases/download/v0.2.0/urlmap-linux-arm64.tar.gz
+tar -xzf urlmap.tar.gz
+chmod +x urlmap
+sudo mv urlmap /usr/local/bin/
+```
+
+#### macOS (Intel)
+```bash
+curl -L -o urlmap.tar.gz https://github.com/aoshimash/urlmap/releases/download/v0.2.0/urlmap-darwin-amd64.tar.gz
 tar -xzf urlmap.tar.gz
 chmod +x urlmap
 sudo mv urlmap /usr/local/bin/
@@ -45,93 +66,146 @@ sudo mv urlmap /usr/local/bin/
 ```
 
 #### Windows
-[リリースページ](https://github.com/aoshimash/urlmap/releases/tag/v0.2.0)から`urlmap-windows-amd64.zip`をダウンロードして展開してください。
+Download `urlmap-windows-amd64.zip` from the [releases page](https://github.com/aoshimash/urlmap/releases/tag/v0.2.0) and extract the executable.
 
 ### Docker
+
+Run with Docker without installation:
+
 ```bash
+# Pull from GitHub Container Registry
 docker pull ghcr.io/aoshimash/urlmap:v0.2.0
+
+# Basic usage
 docker run --rm ghcr.io/aoshimash/urlmap:v0.2.0 https://example.com
 ```
 
-## 🎯 基本的な使用方法
+## 🎯 Usage
+
+### Basic Usage
 
 ```bash
-# 基本的なクロール
+# Crawl a website with default settings
 urlmap https://example.com
 
-# 深度制限付きクロール
-urlmap --depth 3 https://example.com
-
-# 並行処理数を指定
-urlmap --concurrent 20 https://example.com
-
-# 詳細ログ出力
-urlmap --verbose https://example.com
-
-# バージョン確認
+# Check version
 urlmap version
+
+# Get help
+urlmap --help
 ```
 
-## 🔄 アップグレード
-
-v0.1.0からのアップグレードは以下の手順で行えます：
+### Advanced Options
 
 ```bash
-# 新しいバイナリをダウンロード
+# Limit crawl depth to 3 levels
+urlmap --depth 3 https://example.com
+
+# Use 20 concurrent workers for faster crawling
+urlmap --concurrent 20 https://example.com
+
+# Enable verbose logging
+urlmap --verbose https://example.com
+
+# Custom user agent
+urlmap --user-agent "MyBot/1.0" https://example.com
+
+# Rate limiting (5 requests per second)
+urlmap --rate-limit 5 https://example.com
+
+# Combined options
+urlmap --depth 5 --concurrent 15 --verbose --rate-limit 2 https://example.com
+```
+
+### Docker Usage
+
+```bash
+# Basic crawling
+docker run --rm ghcr.io/aoshimash/urlmap:v0.2.0 https://example.com
+
+# With options
+docker run --rm ghcr.io/aoshimash/urlmap:v0.2.0 --depth 3 --concurrent 20 https://example.com
+
+# Save output to file
+docker run --rm ghcr.io/aoshimash/urlmap:v0.2.0 https://example.com > urls.txt
+```
+
+## 🔄 Upgrading from v0.1.0
+
+To upgrade from v0.1.0 to v0.2.0:
+
+```bash
+# Download new binary
 curl -L -o urlmap.tar.gz https://github.com/aoshimash/urlmap/releases/download/v0.2.0/urlmap-linux-amd64.tar.gz
 tar -xzf urlmap.tar.gz
 chmod +x urlmap
 sudo mv urlmap /usr/local/bin/
 
-# またはDockerイメージを更新
+# Or update Docker image
 docker pull ghcr.io/aoshimash/urlmap:v0.2.0
 ```
 
-## ⚡ パフォーマンス
+No configuration changes are required. All existing command-line options remain the same.
 
-v0.2.0では、コードの一貫性向上により保守性が改善されました。パフォーマンス特性は以下の通りです：
+## ⚡ Performance
 
-- **高速クロール**: 並行処理による高性能クロール
-- **メモリ効率**: 大規模サイトでの効率的なメモリ使用
-- **割り込み安全**: 適切なクリーンアップによる安全な中断
+v0.2.0 improves maintainability through enhanced code consistency. Performance characteristics include:
 
-## 🧪 テスト
+- **High-Speed Crawling**: Efficient concurrent processing for fast website mapping
+- **Memory Efficient**: Optimized memory usage for large-scale site crawling
+- **Graceful Shutdown**: Interrupt-safe operation with proper cleanup
+- **Rate Limiting**: Respectful crawling with configurable request rates
 
-- **単体テスト**: 全コンポーネントの包括的テストスイート
-- **統合テスト**: CLI機能の統合テスト
-- **E2Eテスト**: 完全なワークフローテスト
+## 🔧 Command Line Options
 
-## 🙏 謝辞
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--depth` | `-d` | 0 (unlimited) | Maximum crawl depth |
+| `--concurrent` | `-c` | 10 | Number of concurrent workers |
+| `--verbose` | `-v` | false | Enable verbose logging |
+| `--user-agent` | `-u` | urlmap/0.2.0 | Custom User-Agent string |
+| `--progress` | `-p` | true | Show progress indicators |
+| `--rate-limit` | `-r` | 0 (no limit) | Rate limit (requests per second) |
+| `--help` | `-h` | - | Show help message |
 
-このプロジェクトは以下のオープンソースライブラリを使用しています：
+## 🧪 Testing
 
-- [Cobra](https://github.com/spf13/cobra) - CLIフレームワーク
-- [Resty](https://github.com/go-resty/resty) - HTTPクライアント
-- [goquery](https://github.com/PuerkitoBio/goquery) - HTMLパーサー
+- **Unit Tests**: Comprehensive test suite for all components
+- **Integration Tests**: CLI functionality integration tests
+- **E2E Tests**: Complete workflow testing
+- **Performance Tests**: Concurrency and stress testing
 
-## 📄 ライセンス
+## 🙏 Acknowledgments
 
-このプロジェクトはMITライセンスの下でリリースされています。詳細は[LICENSE](LICENSE)ファイルをご覧ください。
+This project uses the following open source libraries:
 
-## 📞 フィードバック・サポート
+- [Cobra](https://github.com/spf13/cobra) - CLI framework
+- [Resty](https://github.com/go-resty/resty) - HTTP client
+- [goquery](https://github.com/PuerkitoBio/goquery) - HTML parser
 
-- 🐛 バグ報告: [Issues](https://github.com/aoshimash/urlmap/issues)
-- 💡 機能要望: [Issues](https://github.com/aoshimash/urlmap/issues)
-- 🤔 質問・提案: [Discussions](https://github.com/aoshimash/urlmap/discussions)
-- 📖 ドキュメント: [Wiki](https://github.com/aoshimash/urlmap/wiki)
+## 📄 License
 
-## 🚀 次のバージョンに向けて
+This project is released under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-v0.3.0では以下の機能を計画しています：
+## 📞 Feedback & Support
 
-- JavaScript動的生成リンクのサポート (WebDriver)
-- 出力フォーマット選択肢 (JSON, CSV, XML)
-- 強化されたフィルタリング機能
-- プラグインシステム
-- パフォーマンス最適化
+- 🐛 Bug Reports: [Issues](https://github.com/aoshimash/urlmap/issues)
+- 💡 Feature Requests: [Issues](https://github.com/aoshimash/urlmap/issues)
+- 🤔 Questions & Suggestions: [Discussions](https://github.com/aoshimash/urlmap/discussions)
+- 📖 Documentation: [Wiki](https://github.com/aoshimash/urlmap/wiki)
+
+## 🔮 What's Next?
+
+Planned features for v0.3.0:
+
+- **JavaScript Support**: WebDriver integration for JavaScript-rendered content
+- **Multiple Output Formats**: JSON, CSV, XML export options
+- **Enhanced Filtering**: Advanced URL filtering capabilities
+- **Plugin System**: Extensible architecture for custom functionality
+- **Performance Optimizations**: Further improvements to crawling speed and efficiency
 
 ---
 
-**v0.2.0をお試しください！フィードバックお待ちしています。** 🚀
+**Try v0.2.0 today! Your feedback helps make future versions even better.** 🚀
 
-**注意**: このバージョンは安定版です。本番環境での使用前に十分にテストしてください。
+**Note**: This is a stable release. Please test thoroughly before using in production environments.
