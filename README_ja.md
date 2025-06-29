@@ -149,7 +149,7 @@ docker run -it --rm ghcr.io/aoshimash/urlmap:latest /bin/sh
 
 | フラグ | 短縮形 | デフォルト | 説明 |
 |------|-------|---------|-------------|
-| `--depth` | `-d` | 0 (無制限) | 最大クロール深度 |
+| `--depth` | `-d` | -1 (無制限) | 最大クロール深度 |
 | `--concurrent` | `-c` | 10 | 並行ワーカー数 |
 | `--verbose` | `-v` | false | 詳細ログを有効化 |
 | `--user-agent` | `-u` | urlmap/1.0.0 | カスタムUser-Agent文字列 |

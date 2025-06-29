@@ -149,7 +149,7 @@ docker run -it --rm ghcr.io/aoshimash/urlmap:latest /bin/sh
 
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
-| `--depth` | `-d` | 0 (unlimited) | Maximum crawl depth |
+| `--depth` | `-d` | -1 (unlimited) | Maximum crawl depth |
 | `--concurrent` | `-c` | 10 | Number of concurrent workers |
 | `--verbose` | `-v` | false | Enable verbose logging |
 | `--user-agent` | `-u` | urlmap/1.0.0 | Custom User-Agent string |
