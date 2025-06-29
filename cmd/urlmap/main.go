@@ -62,7 +62,7 @@ var versionCmd = &cobra.Command{
 
 func init() {
 	// Add flags to the root command
-	rootCmd.Flags().IntVarP(&depth, "depth", "d", 0, "Maximum crawl depth (0 = unlimited)")
+	rootCmd.Flags().IntVarP(&depth, "depth", "d", -1, "Maximum crawl depth (-1 = unlimited)")
 	rootCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose logging")
 	rootCmd.Flags().StringVarP(&userAgent, "user-agent", "u", "urlmap/0.2.0 (+https://github.com/aoshimash/urlmap)", "Custom User-Agent string")
 	rootCmd.Flags().IntVarP(&concurrent, "concurrent", "c", 10, "Number of concurrent requests")

@@ -93,7 +93,7 @@ func TestVersionCommand(t *testing.T) {
 
 func TestFlagDefaults(t *testing.T) {
 	// Reset flags to default values
-	depth = 0
+	depth = -1
 	verbose = false
 	userAgent = "urlmap/1.0.0 (+https://github.com/aoshimash/urlmap)"
 	concurrent = 10
@@ -104,8 +104,8 @@ func TestFlagDefaults(t *testing.T) {
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Test default values
-			if depth != 0 {
-				t.Errorf("depth default should be 0, got: %d", depth)
+			if depth != -1 {
+				t.Errorf("depth default should be -1, got: %d", depth)
 			}
 			if verbose != false {
 				t.Errorf("verbose default should be false, got: %v", verbose)
@@ -120,7 +120,7 @@ func TestFlagDefaults(t *testing.T) {
 		},
 	}
 
-	cmd.Flags().IntVarP(&depth, "depth", "d", 0, "Maximum crawl depth (0 = unlimited)")
+	cmd.Flags().IntVarP(&depth, "depth", "d", -1, "Maximum crawl depth (-1 = unlimited)")
 	cmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose logging")
 	cmd.Flags().StringVarP(&userAgent, "user-agent", "u", "urlmap/1.0.0 (+https://github.com/aoshimash/urlmap)", "Custom User-Agent string")
 	cmd.Flags().IntVarP(&concurrent, "concurrent", "c", 10, "Number of concurrent requests")
@@ -163,7 +163,7 @@ func TestFlagParsing(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Reset flags
-			depth = 0
+			depth = -1
 			verbose = false
 			userAgent = "urlmap/1.0.0 (+https://github.com/aoshimash/urlmap)"
 			concurrent = 10
@@ -189,7 +189,7 @@ func TestFlagParsing(t *testing.T) {
 				},
 			}
 
-			cmd.Flags().IntVarP(&depth, "depth", "d", 0, "Maximum crawl depth (0 = unlimited)")
+			cmd.Flags().IntVarP(&depth, "depth", "d", -1, "Maximum crawl depth (-1 = unlimited)")
 			cmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Enable verbose logging")
 			cmd.Flags().StringVarP(&userAgent, "user-agent", "u", "urlmap/1.0.0 (+https://github.com/aoshimash/urlmap)", "Custom User-Agent string")
 			cmd.Flags().IntVarP(&concurrent, "concurrent", "c", 10, "Number of concurrent requests")
