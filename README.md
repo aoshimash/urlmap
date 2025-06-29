@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/aoshimash/urlmap/workflows/CI/badge.svg)](https://github.com/aoshimash/urlmap/actions/workflows/ci.yml)
 [![Docker](https://github.com/aoshimash/urlmap/workflows/Docker%20Build%20and%20Publish/badge.svg)](https://github.com/aoshimash/urlmap/actions/workflows/docker.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/aoshimash/urlmap)](https://goreportcard.com/report/github.com/aoshimash/urlmap)
+[![Go Report Card](https://goreportcard.com/badge/github.com/aoshimash/urlmap?style=flat-square)](https://goreportcard.com/report/github.com/aoshimash/urlmap)
 [![License](https://img.shields.io/github/license/aoshimash/urlmap)](LICENSE)
 
 A fast and efficient web crawler CLI tool for discovering and mapping URLs within a website. Built with Go for high performance and concurrent crawling.
