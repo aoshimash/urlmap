@@ -215,6 +215,60 @@ func TestIsSameDomain(t *testing.T) {
 	}
 }
 
+func TestIsSamePathPrefix(t *testing.T) {
+	tests := []struct {
+		name        string
+		baseURL     string
+		targetURL   string
+		expected    bool
+		shouldError bool
+	}{
+		// Valid cases - same path prefix
+		{"Exact same URL", "https://example.com/docs/", "https://example.com/docs/", true, false},
+		{"Target under base path", "https://example.com/docs/", "https://example.com/docs/api/", true, false},
+		{"Deep nesting", "https://example.com/docs/", "https://example.com/docs/api/v1/guide.html", true, false},
+		{"Base without trailing slash", "https://example.com/docs", "https://example.com/docs/api/", true, false},
+		{"Target without trailing slash", "https://example.com/docs/", "https://example.com/docs/api", true, false},
+		{"Both without trailing slash", "https://example.com/docs", "https://example.com/docs/api", true, false},
+		{"Root path base", "https://example.com/", "https://example.com/docs/", true, false},
+		{"Root path both", "https://example.com/", "https://example.com/", true, false},
+
+		// Valid cases - different path prefix
+		{"Different paths", "https://example.com/docs/", "https://example.com/api/", false, false},
+		{"Target not under base", "https://example.com/docs/api/", "https://example.com/docs/", false, false},
+		{"Similar but different paths", "https://example.com/docs/", "https://example.com/documentation/", false, false},
+		{"Partial match", "https://example.com/doc/", "https://example.com/docs/", false, false},
+
+		// Valid cases - different domains
+		{"Different domains", "https://example.com/docs/", "https://other.com/docs/", false, false},
+		{"Subdomain difference", "https://api.example.com/docs/", "https://example.com/docs/", false, false},
+
+		// Error cases
+		{"Invalid base URL", "invalid", "https://example.com/docs/", false, true},
+		{"Invalid target URL", "https://example.com/docs/", "invalid", false, true},
+		{"Both invalid", "invalid1", "invalid2", false, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := IsSamePathPrefix(tt.baseURL, tt.targetURL)
+
+			if tt.shouldError {
+				if err == nil {
+					t.Errorf("IsSamePathPrefix(%q, %q) expected error but got none", tt.baseURL, tt.targetURL)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("IsSamePathPrefix(%q, %q) unexpected error: %v", tt.baseURL, tt.targetURL, err)
+				}
+				if result != tt.expected {
+					t.Errorf("IsSamePathPrefix(%q, %q) = %v; want %v", tt.baseURL, tt.targetURL, result, tt.expected)
+				}
+			}
+		})
+	}
+}
+
 func TestShouldSkipURL(t *testing.T) {
 	tests := []struct {
 		name     string

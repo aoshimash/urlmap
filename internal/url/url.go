@@ -132,6 +132,46 @@ func IsSameDomain(url1, url2 string) (bool, error) {
 	return strings.EqualFold(domain1, domain2), nil
 }
 
+// IsSamePathPrefix checks if targetURL is under the same path prefix as baseURL
+// This function first checks if the URLs belong to the same domain, then checks
+// if the target URL's path starts with the base URL's path prefix
+func IsSamePathPrefix(baseURL, targetURL string) (bool, error) {
+	// First check if they belong to the same domain
+	sameDomain, err := IsSameDomain(baseURL, targetURL)
+	if err != nil {
+		return false, fmt.Errorf("failed to check domain similarity: %w", err)
+	}
+	if !sameDomain {
+		return false, nil
+	}
+
+	// Parse both URLs to extract paths
+	baseParsed, err := url.Parse(baseURL)
+	if err != nil {
+		return false, fmt.Errorf("failed to parse base URL: %w", err)
+	}
+
+	targetParsed, err := url.Parse(targetURL)
+	if err != nil {
+		return false, fmt.Errorf("failed to parse target URL: %w", err)
+	}
+
+	// Normalize paths - ensure they end with / for proper prefix matching
+	basePath := baseParsed.Path
+	targetPath := targetParsed.Path
+
+	// Ensure paths end with / for directory-style prefix matching
+	if basePath != "/" && !strings.HasSuffix(basePath, "/") {
+		basePath += "/"
+	}
+	if targetPath != "/" && !strings.HasSuffix(targetPath, "/") {
+		targetPath += "/"
+	}
+
+	// Check if target path starts with base path
+	return strings.HasPrefix(targetPath, basePath), nil
+}
+
 // ShouldSkipURL checks if a URL should be skipped based on common patterns
 func ShouldSkipURL(rawURL string) bool {
 	rawURL = strings.TrimSpace(rawURL)
