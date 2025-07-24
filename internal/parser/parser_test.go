@@ -1,10 +1,21 @@
 package parser
 
 import (
+	"context"
 	"log/slog"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/aoshimash/urlmap/internal/client"
 )
+
+// isGitHubActions returns true if running in GitHub Actions
+func isGitHubActions() bool {
+	return os.Getenv("GITHUB_ACTIONS") != ""
+}
 
 const (
 	testBaseURL = "https://example.com"
@@ -491,4 +502,132 @@ func BenchmarkLinkExtractor_ExtractLinks(b *testing.B) {
 			b.Fatalf("Unexpected error: %v", err)
 		}
 	}
+}
+
+func TestNewLinkExtractorWithClient(t *testing.T) {
+	logger := slog.Default()
+
+	// Create a unified client with JS disabled (safe for CI)
+	config := &client.UnifiedConfig{
+		UserAgent: "test-agent",
+		JSConfig:  &client.JSConfig{Enabled: false},
+	}
+	unifiedClient, err := client.NewUnifiedClient(config, logger)
+	require.NoError(t, err)
+	defer unifiedClient.Close()
+
+	extractor := NewLinkExtractorWithClient(logger, unifiedClient)
+
+	assert.NotNil(t, extractor.logger)
+	assert.NotNil(t, extractor.client)
+	assert.False(t, extractor.client.IsJSEnabled())
+}
+
+func TestLinkExtractor_ExtractLinksFromURL_NoClient(t *testing.T) {
+	extractor := NewLinkExtractor(slog.Default())
+
+	ctx := context.Background()
+	links, err := extractor.ExtractLinksFromURL(ctx, "https://example.com")
+
+	assert.Error(t, err)
+	assert.Nil(t, links)
+	assert.Contains(t, err.Error(), "unified client not configured")
+}
+
+func TestLinkExtractor_ExtractLinksFromURL_InvalidURL(t *testing.T) {
+	logger := slog.Default()
+
+	// Create a unified client with JS disabled (safe for CI)
+	config := &client.UnifiedConfig{
+		UserAgent: "test-agent",
+		JSConfig:  &client.JSConfig{Enabled: false},
+	}
+	unifiedClient, err := client.NewUnifiedClient(config, logger)
+	require.NoError(t, err)
+	defer unifiedClient.Close()
+
+	extractor := NewLinkExtractorWithClient(logger, unifiedClient)
+
+	ctx := context.Background()
+
+	// Test empty URL
+	links, err := extractor.ExtractLinksFromURL(ctx, "")
+	assert.Error(t, err)
+	assert.Nil(t, links)
+	assert.Contains(t, err.Error(), "target URL cannot be empty")
+
+	// Test invalid URL
+	links, err = extractor.ExtractLinksFromURL(ctx, "invalid-url")
+	assert.Error(t, err)
+	assert.Nil(t, links)
+	assert.Contains(t, err.Error(), "invalid target URL")
+}
+
+func TestLinkExtractor_ExtractLinksFromURL_Integration_Skip(t *testing.T) {
+	t.Skip("Integration test requires external HTTP request")
+
+	// Example of what an integration test would look like:
+	/*
+		logger := slog.Default()
+
+		// Create a unified client with JS disabled for testing
+		config := &client.UnifiedConfig{
+			UserAgent: "urlmap-test/1.0",
+			JSConfig:  &client.JSConfig{Enabled: false},
+		}
+		unifiedClient, err := client.NewUnifiedClient(config, logger)
+		require.NoError(t, err)
+		defer unifiedClient.Close()
+
+		extractor := NewLinkExtractorWithClient(logger, unifiedClient)
+
+		ctx := context.Background()
+		links, err := extractor.ExtractLinksFromURL(ctx, "https://httpbin.org/html")
+
+		assert.NoError(t, err)
+		assert.NotEmpty(t, links)
+
+		// Should extract at least some links from the HTML page
+		assert.Greater(t, len(links), 0)
+	*/
+}
+
+func TestLinkExtractor_ExtractLinksFromURLWithFallback_NoClient(t *testing.T) {
+	extractor := NewLinkExtractor(slog.Default())
+
+	ctx := context.Background()
+	links, err := extractor.ExtractLinksFromURLWithFallback(ctx, "https://example.com")
+
+	assert.Error(t, err)
+	assert.Nil(t, links)
+	assert.Contains(t, err.Error(), "unified client not configured")
+}
+
+func TestLinkExtractor_ExtractLinksFromURLWithFallback_InvalidURL(t *testing.T) {
+	logger := slog.Default()
+
+	// Create a unified client with JS disabled (safe for CI)
+	config := &client.UnifiedConfig{
+		UserAgent: "test-agent",
+		JSConfig:  &client.JSConfig{Enabled: false},
+	}
+	unifiedClient, err := client.NewUnifiedClient(config, logger)
+	require.NoError(t, err)
+	defer unifiedClient.Close()
+
+	extractor := NewLinkExtractorWithClient(logger, unifiedClient)
+
+	ctx := context.Background()
+
+	// Test empty URL
+	links, err := extractor.ExtractLinksFromURLWithFallback(ctx, "")
+	assert.Error(t, err)
+	assert.Nil(t, links)
+	assert.Contains(t, err.Error(), "target URL cannot be empty")
+
+	// Test invalid URL
+	links, err = extractor.ExtractLinksFromURLWithFallback(ctx, "invalid-url")
+	assert.Error(t, err)
+	assert.Nil(t, links)
+	assert.Contains(t, err.Error(), "invalid target URL")
 }
