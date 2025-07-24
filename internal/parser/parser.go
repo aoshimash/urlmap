@@ -1,17 +1,20 @@
 package parser
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/aoshimash/urlmap/internal/client"
 	"github.com/aoshimash/urlmap/internal/url"
 )
 
 // LinkExtractor provides functionality to extract and filter links from HTML content
 type LinkExtractor struct {
 	logger *slog.Logger
+	client *client.UnifiedClient
 }
 
 // NewLinkExtractor creates a new LinkExtractor instance
@@ -21,7 +24,93 @@ func NewLinkExtractor(logger *slog.Logger) *LinkExtractor {
 	}
 	return &LinkExtractor{
 		logger: logger,
+		client: nil, // Will be set when needed
 	}
+}
+
+// NewLinkExtractorWithClient creates a new LinkExtractor instance with a unified client
+func NewLinkExtractorWithClient(logger *slog.Logger, unifiedClient *client.UnifiedClient) *LinkExtractor {
+	if logger == nil {
+		logger = slog.Default()
+	}
+	return &LinkExtractor{
+		logger: logger,
+		client: unifiedClient,
+	}
+}
+
+// ExtractLinksFromURL fetches content from URL and extracts links using the unified client
+// This method supports both HTTP and JavaScript rendering based on client configuration
+func (le *LinkExtractor) ExtractLinksFromURL(ctx context.Context, targetURL string) ([]string, error) {
+	if le.client == nil {
+		return nil, fmt.Errorf("unified client not configured - use NewLinkExtractorWithClient or call ExtractLinks directly")
+	}
+
+	if targetURL = strings.TrimSpace(targetURL); targetURL == "" {
+		return nil, fmt.Errorf("target URL cannot be empty")
+	}
+
+	// Validate URL
+	if !url.IsValidURL(targetURL) {
+		return nil, fmt.Errorf("invalid target URL: %s", targetURL)
+	}
+
+	le.logger.Debug("Fetching content from URL",
+		"url", targetURL,
+		"js_enabled", le.client.IsJSEnabled())
+
+	// Fetch content using unified client (HTTP or JS rendering)
+	response, err := le.client.Get(ctx, targetURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch content from %s: %w", targetURL, err)
+	}
+
+	htmlContent := response.String()
+
+	le.logger.Debug("Content fetched successfully",
+		"url", targetURL,
+		"content_length", len(htmlContent),
+		"status_code", response.StatusCode())
+
+	// Extract links from the fetched content
+	return le.ExtractLinks(targetURL, htmlContent)
+}
+
+// ExtractLinksFromURLWithFallback fetches content with fallback support
+// This method attempts JavaScript rendering first, then falls back to HTTP if enabled
+func (le *LinkExtractor) ExtractLinksFromURLWithFallback(ctx context.Context, targetURL string) ([]string, error) {
+	if le.client == nil {
+		return nil, fmt.Errorf("unified client not configured - use NewLinkExtractorWithClient or call ExtractLinks directly")
+	}
+
+	if targetURL = strings.TrimSpace(targetURL); targetURL == "" {
+		return nil, fmt.Errorf("target URL cannot be empty")
+	}
+
+	// Validate URL
+	if !url.IsValidURL(targetURL) {
+		return nil, fmt.Errorf("invalid target URL: %s", targetURL)
+	}
+
+	le.logger.Debug("Fetching content from URL with fallback",
+		"url", targetURL,
+		"js_enabled", le.client.IsJSEnabled())
+
+	// Fetch content using unified client with fallback
+	response, err := le.client.GetWithFallback(ctx, targetURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch content from %s: %w", targetURL, err)
+	}
+
+	htmlContent := response.String()
+
+	le.logger.Debug("Content fetched successfully with fallback",
+		"url", targetURL,
+		"content_length", len(htmlContent),
+		"status_code", response.StatusCode())
+
+	// Extract links from the fetched content
+	return le.ExtractLinks(targetURL, htmlContent)
 }
 
 // ExtractLinks extracts and filters links from HTML content
