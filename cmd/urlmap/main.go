@@ -24,12 +24,13 @@ var (
 
 // Command line flags
 var (
-	depth        int
-	verbose      bool
-	userAgent    string
-	concurrent   int
-	showProgress bool
-	rateLimit    float64
+	depth          int
+	verbose        bool
+	userAgent      string
+	concurrent     int
+	showProgress   bool
+	rateLimit      float64
+	samePathPrefix bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -44,7 +45,8 @@ within the same domain, creating a comprehensive URL map of the site.
 Examples:
   urlmap https://example.com
   urlmap -d 3 -c 5 https://example.com
-  urlmap --verbose --user-agent "MyBot/1.0" https://example.com`,
+  urlmap --verbose --user-agent "MyBot/1.0" https://example.com
+  urlmap --same-path-prefix https://example.com/docs/`,
 	Args: cobra.ExactArgs(1), // Require exactly one URL argument
 	RunE: runCrawl,
 }
@@ -68,6 +70,7 @@ func init() {
 	rootCmd.Flags().IntVarP(&concurrent, "concurrent", "c", 10, "Number of concurrent requests")
 	rootCmd.Flags().BoolVarP(&showProgress, "progress", "p", true, "Show progress indicators (default: true)")
 	rootCmd.Flags().Float64VarP(&rateLimit, "rate-limit", "r", 0, "Rate limit requests per second (0 = no limit)")
+	rootCmd.Flags().BoolVar(&samePathPrefix, "same-path-prefix", false, "Only crawl URLs under the same path prefix as the start URL")
 
 	// Add subcommands
 	rootCmd.AddCommand(versionCmd)
@@ -100,6 +103,7 @@ func runCrawl(cmd *cobra.Command, args []string) error {
 	crawlerConfig := &crawler.Config{
 		MaxDepth:       depth,
 		SameDomain:     true, // For now, limit to same domain
+		SamePathPrefix: samePathPrefix,
 		UserAgent:      userAgent,
 		Logger:         logger,
 		Workers:        concurrent,
