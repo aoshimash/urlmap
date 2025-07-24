@@ -24,14 +24,12 @@ var (
 
 // Command line flags
 var (
-	depth            int
-	verbose          bool
-	userAgent        string
-	concurrent       int
-	showProgress     bool
-	rateLimit        float64
-	samePathPrefix   bool = true // デフォルトでパスプレフィックスフィルタリングを有効にする
-	noSamePathPrefix bool        // パスプレフィックスフィルタリングを無効にするフラグ
+	depth        int
+	verbose      bool
+	userAgent    string
+	concurrent   int
+	showProgress bool
+	rateLimit    float64
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -45,9 +43,9 @@ within the same path prefix by default, creating a comprehensive URL map.
 
 Examples:
   urlmap https://example.com/docs/                    # Crawl only under /docs/ path
+  urlmap https://example.com/                         # Crawl entire domain
   urlmap -d 3 -c 5 https://example.com/api/          # Limit depth and concurrency
-  urlmap --verbose https://example.com/guides/       # Enable verbose logging
-  urlmap --no-same-path-prefix https://example.com/  # Crawl entire domain`,
+  urlmap --verbose https://example.com/guides/       # Enable verbose logging`,
 	Args: cobra.ExactArgs(1), // Require exactly one URL argument
 	RunE: runCrawl,
 }
@@ -71,11 +69,6 @@ func init() {
 	rootCmd.Flags().IntVarP(&concurrent, "concurrent", "c", 10, "Number of concurrent requests")
 	rootCmd.Flags().BoolVarP(&showProgress, "progress", "p", true, "Show progress indicators (default: true)")
 	rootCmd.Flags().Float64VarP(&rateLimit, "rate-limit", "r", 0, "Rate limit requests per second (0 = no limit)")
-	rootCmd.Flags().BoolVar(&samePathPrefix, "same-path-prefix", true, "Only crawl URLs under the same path prefix as the start URL (default: true)")
-
-	// Add flag to disable path prefix filtering
-	rootCmd.Flags().BoolVar(&noSamePathPrefix, "no-same-path-prefix", false, "Disable path prefix filtering and crawl entire domain")
-	rootCmd.MarkFlagsMutuallyExclusive("same-path-prefix", "no-same-path-prefix")
 
 	// Add subcommands
 	rootCmd.AddCommand(versionCmd)
@@ -87,11 +80,6 @@ func runCrawl(cmd *cobra.Command, args []string) error {
 	parsedURL, err := url.Parse(targetURL)
 	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
 		return fmt.Errorf("invalid URL: %s (must be http or https)", targetURL)
-	}
-
-	// Handle mutually exclusive flags
-	if noSamePathPrefix {
-		samePathPrefix = false
 	}
 
 	// Set up logging based on verbose flag
@@ -113,7 +101,7 @@ func runCrawl(cmd *cobra.Command, args []string) error {
 	crawlerConfig := &crawler.Config{
 		MaxDepth:       depth,
 		SameDomain:     true, // For now, limit to same domain
-		SamePathPrefix: samePathPrefix,
+		SamePathPrefix: true, // デフォルトでパスプレフィックスフィルタリングを有効にする
 		UserAgent:      userAgent,
 		Logger:         logger,
 		Workers:        concurrent,
