@@ -12,6 +12,25 @@ import (
 	"github.com/aoshimash/urlmap/internal/client"
 )
 
+// isCIEnvironment returns true if running in a CI environment
+func isCIEnvironment() bool {
+	ciEnvVars := []string{
+		"CI",
+		"GITHUB_ACTIONS",
+		"TRAVIS",
+		"CIRCLECI",
+		"JENKINS_URL",
+		"GITLAB_CI",
+	}
+
+	for _, envVar := range ciEnvVars {
+		if os.Getenv(envVar) != "" {
+			return true
+		}
+	}
+	return false
+}
+
 const (
 	testBaseURL = "https://example.com"
 )
@@ -502,7 +521,7 @@ func BenchmarkLinkExtractor_ExtractLinks(b *testing.B) {
 func TestNewLinkExtractorWithClient(t *testing.T) {
 	logger := slog.Default()
 
-	// Create a unified client with JS disabled
+	// Create a unified client with JS disabled (safe for CI)
 	config := &client.UnifiedConfig{
 		UserAgent: "test-agent",
 		JSConfig:  &client.JSConfig{Enabled: false},
@@ -532,7 +551,7 @@ func TestLinkExtractor_ExtractLinksFromURL_NoClient(t *testing.T) {
 func TestLinkExtractor_ExtractLinksFromURL_InvalidURL(t *testing.T) {
 	logger := slog.Default()
 
-	// Create a unified client with JS disabled
+	// Create a unified client with JS disabled (safe for CI)
 	config := &client.UnifiedConfig{
 		UserAgent: "test-agent",
 		JSConfig:  &client.JSConfig{Enabled: false},
@@ -563,27 +582,27 @@ func TestLinkExtractor_ExtractLinksFromURL_Integration_Skip(t *testing.T) {
 
 	// Example of what an integration test would look like:
 	/*
-	logger := slog.Default()
+		logger := slog.Default()
 
-	// Create a unified client with JS disabled for testing
-	config := &client.UnifiedConfig{
-		UserAgent: "urlmap-test/1.0",
-		JSConfig:  &client.JSConfig{Enabled: false},
-	}
-	unifiedClient, err := client.NewUnifiedClient(config, logger)
-	require.NoError(t, err)
-	defer unifiedClient.Close()
+		// Create a unified client with JS disabled for testing
+		config := &client.UnifiedConfig{
+			UserAgent: "urlmap-test/1.0",
+			JSConfig:  &client.JSConfig{Enabled: false},
+		}
+		unifiedClient, err := client.NewUnifiedClient(config, logger)
+		require.NoError(t, err)
+		defer unifiedClient.Close()
 
-	extractor := NewLinkExtractorWithClient(logger, unifiedClient)
+		extractor := NewLinkExtractorWithClient(logger, unifiedClient)
 
-	ctx := context.Background()
-	links, err := extractor.ExtractLinksFromURL(ctx, "https://httpbin.org/html")
+		ctx := context.Background()
+		links, err := extractor.ExtractLinksFromURL(ctx, "https://httpbin.org/html")
 
-	assert.NoError(t, err)
-	assert.NotEmpty(t, links)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, links)
 
-	// Should extract at least some links from the HTML page
-	assert.Greater(t, len(links), 0)
+		// Should extract at least some links from the HTML page
+		assert.Greater(t, len(links), 0)
 	*/
 }
 
@@ -601,7 +620,7 @@ func TestLinkExtractor_ExtractLinksFromURLWithFallback_NoClient(t *testing.T) {
 func TestLinkExtractor_ExtractLinksFromURLWithFallback_InvalidURL(t *testing.T) {
 	logger := slog.Default()
 
-	// Create a unified client with JS disabled
+	// Create a unified client with JS disabled (safe for CI)
 	config := &client.UnifiedConfig{
 		UserAgent: "test-agent",
 		JSConfig:  &client.JSConfig{Enabled: false},

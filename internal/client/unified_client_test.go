@@ -36,6 +36,11 @@ func TestNewUnifiedClient_HTTPOnly(t *testing.T) {
 }
 
 func TestNewUnifiedClient_JSEnabled(t *testing.T) {
+	// Skip this test in CI environment where Playwright may not be available
+	if isCIEnvironment() {
+		t.Skip("Skipping Playwright test in CI environment")
+	}
+
 	config := &UnifiedConfig{
 		UserAgent: "test-agent",
 		JSConfig: &JSConfig{
@@ -52,7 +57,7 @@ func TestNewUnifiedClient_JSEnabled(t *testing.T) {
 	client, err := NewUnifiedClient(config, slog.Default())
 
 	if err != nil {
-		// Expected in CI environment without Playwright
+		// Expected in environments without Playwright setup
 		assert.Contains(t, err.Error(), "failed to create JS client")
 		return
 	}
@@ -63,6 +68,9 @@ func TestNewUnifiedClient_JSEnabled(t *testing.T) {
 	assert.NotNil(t, client.jsClient)
 	assert.True(t, client.IsJSEnabled())
 	assert.Equal(t, "test-agent", client.jsClient.config.UserAgent)
+
+	// Clean up
+	client.Close()
 }
 
 func TestNewUnifiedClient_InvalidJSConfig(t *testing.T) {

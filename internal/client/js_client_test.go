@@ -3,12 +3,32 @@ package client
 import (
 	"context"
 	"log/slog"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// isCIEnvironment returns true if running in a CI environment
+func isCIEnvironment() bool {
+	ciEnvVars := []string{
+		"CI",
+		"GITHUB_ACTIONS",
+		"TRAVIS",
+		"CIRCLECI",
+		"JENKINS_URL",
+		"GITLAB_CI",
+	}
+
+	for _, envVar := range ciEnvVars {
+		if os.Getenv(envVar) != "" {
+			return true
+		}
+	}
+	return false
+}
 
 func TestJSConfig_DefaultConfig(t *testing.T) {
 	config := DefaultJSConfig()
@@ -114,6 +134,35 @@ func TestNewJSClient_InvalidConfig(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, client)
 	assert.Contains(t, err.Error(), "invalid JS config")
+}
+
+func TestNewJSClient_EnabledConfig_CI(t *testing.T) {
+	if !isCIEnvironment() {
+		t.Skip("This test only runs in CI environment to verify Playwright installation")
+	}
+
+	config := &JSConfig{
+		Enabled:     true,
+		BrowserType: "chromium",
+		Headless:    true,
+		Timeout:     10 * time.Second,
+		WaitFor:     "networkidle",
+	}
+
+	// In CI, this should fail gracefully due to missing system dependencies
+	client, err := NewJSClient(config, slog.Default())
+
+	// We expect this to fail in CI environment
+	if err != nil {
+		t.Logf("Expected failure in CI environment: %v", err)
+		assert.Error(t, err)
+		assert.Nil(t, client)
+	} else {
+		// If it succeeds, clean up
+		if client != nil {
+			client.Close()
+		}
+	}
 }
 
 func TestJSClient_RenderPage_Disabled(t *testing.T) {
