@@ -92,7 +92,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		MaxDepth:       3,
 		SameDomain:     true,
-		SamePathPrefix: false,
+		SamePathPrefix: true, // デフォルトでパスプレフィックスフィルタリングを有効にする
 		UserAgent:      "urlmap/1.0",
 		Timeout:        30 * time.Second,
 		Logger:         slog.Default(),
