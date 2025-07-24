@@ -43,16 +43,17 @@ type CrawlStats struct {
 
 // Crawler represents a web crawler instance with recursive capabilities
 type Crawler struct {
-	client     *client.Client        // HTTP client for fetching pages
-	parser     *parser.LinkExtractor // HTML parser for extracting links
-	logger     *slog.Logger          // Logger for structured logging
-	visited    map[string]bool       // Track visited URLs to prevent duplicates
-	maxDepth   int                   // Maximum crawling depth
-	sameDomain bool                  // Whether to limit crawling to same domain
-	baseDomain string                // Base domain for same-domain filtering
-	results    []CrawlResult         // Results of crawling operations
-	stats      CrawlStats            // Crawling statistics
-	workers    int                   // Number of concurrent workers
+	client         *client.Client        // HTTP client for fetching pages
+	parser         *parser.LinkExtractor // HTML parser for extracting links
+	logger         *slog.Logger          // Logger for structured logging
+	visited        map[string]bool       // Track visited URLs to prevent duplicates
+	maxDepth       int                   // Maximum crawling depth
+	sameDomain     bool                  // Whether to limit crawling to same domain
+	samePathPrefix bool                  // Whether to limit crawling to same path prefix
+	baseDomain     string                // Base domain for same-domain filtering
+	results        []CrawlResult         // Results of crawling operations
+	stats          CrawlStats            // Crawling statistics
+	workers        int                   // Number of concurrent workers
 }
 
 // ConcurrentCrawler handles concurrent crawling with worker pool
@@ -77,6 +78,7 @@ type ConcurrentCrawler struct {
 type Config struct {
 	MaxDepth       int              // Maximum depth to crawl (-1 = no limit, 0 = root only)
 	SameDomain     bool             // Whether to limit crawling to same domain
+	SamePathPrefix bool             // Whether to limit crawling to same path prefix as start URL
 	UserAgent      string           // User agent to use for requests
 	Timeout        time.Duration    // Request timeout
 	Logger         *slog.Logger     // Logger instance
@@ -90,6 +92,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		MaxDepth:       3,
 		SameDomain:     true,
+		SamePathPrefix: true, // デフォルトでパスプレフィックスフィルタリングを有効にする
 		UserAgent:      "urlmap/1.0",
 		Timeout:        30 * time.Second,
 		Logger:         slog.Default(),
@@ -124,15 +127,17 @@ func New(config *Config) (*Crawler, error) {
 	}
 
 	return &Crawler{
-		client:     httpClient,
-		parser:     linkExtractor,
-		logger:     config.Logger,
-		visited:    make(map[string]bool),
-		maxDepth:   config.MaxDepth,
-		sameDomain: config.SameDomain,
-		results:    make([]CrawlResult, 0),
-		stats:      CrawlStats{},
-		workers:    workers,
+		client:         httpClient,
+		parser:         linkExtractor,
+		logger:         config.Logger,
+		visited:        make(map[string]bool),
+		maxDepth:       config.MaxDepth,
+		sameDomain:     config.SameDomain,
+		samePathPrefix: config.SamePathPrefix,
+		baseDomain:     "", // Initialize baseDomain
+		results:        make([]CrawlResult, 0),
+		stats:          CrawlStats{},
+		workers:        workers,
 	}, nil
 }
 
@@ -201,12 +206,22 @@ func (c *Crawler) CrawlRecursive(startURL string) ([]CrawlResult, *CrawlStats, e
 					continue
 				}
 
-				// Apply same-domain filtering if enabled
+				// Apply filtering based on configuration
 				if c.sameDomain {
-					isSame, err := url.IsSameDomain(c.baseDomain, link)
-					if err != nil || !isSame {
-						c.logger.Debug("Skipping external domain link", "link", link)
-						continue
+					if c.samePathPrefix {
+						// Use path prefix filtering (includes domain check)
+						isSame, err := url.IsSamePathPrefix(c.baseDomain, link)
+						if err != nil || !isSame {
+							c.logger.Debug("Skipping link outside path prefix", "link", link, "base", c.baseDomain)
+							continue
+						}
+					} else {
+						// Use domain-only filtering
+						isSame, err := url.IsSameDomain(c.baseDomain, link)
+						if err != nil || !isSame {
+							c.logger.Debug("Skipping external domain link", "link", link)
+							continue
+						}
 					}
 				}
 
@@ -577,12 +592,22 @@ func (cc *ConcurrentCrawler) addLinksToQueue(links []string, currentDepth int) {
 			continue
 		}
 
-		// Apply same-domain filtering if enabled
+		// Apply filtering based on configuration
 		if cc.sameDomain {
-			isSame, err := url.IsSameDomain(cc.baseDomain, link)
-			if err != nil || !isSame {
-				cc.logger.Debug("Skipping external domain link", "link", link)
-				continue
+			if cc.samePathPrefix {
+				// Use path prefix filtering (includes domain check)
+				isSame, err := url.IsSamePathPrefix(cc.baseDomain, link)
+				if err != nil || !isSame {
+					cc.logger.Debug("Skipping link outside path prefix", "link", link, "base", cc.baseDomain)
+					continue
+				}
+			} else {
+				// Use domain-only filtering
+				isSame, err := url.IsSameDomain(cc.baseDomain, link)
+				if err != nil || !isSame {
+					cc.logger.Debug("Skipping external domain link", "link", link)
+					continue
+				}
 			}
 		}
 

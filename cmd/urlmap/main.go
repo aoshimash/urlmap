@@ -39,12 +39,13 @@ var rootCmd = &cobra.Command{
 	Long: `Urlmap is a web crawler for discovering and mapping all URLs within a website.
 
 This tool crawls web pages starting from a given URL and discovers all links
-within the same domain, creating a comprehensive URL map of the site.
+within the same path prefix by default, creating a comprehensive URL map.
 
 Examples:
-  urlmap https://example.com
-  urlmap -d 3 -c 5 https://example.com
-  urlmap --verbose --user-agent "MyBot/1.0" https://example.com`,
+  urlmap https://example.com/docs/                    # Crawl only under /docs/ path
+  urlmap https://example.com/                         # Crawl entire domain
+  urlmap -d 3 -c 5 https://example.com/api/          # Limit depth and concurrency
+  urlmap --verbose https://example.com/guides/       # Enable verbose logging`,
 	Args: cobra.ExactArgs(1), // Require exactly one URL argument
 	RunE: runCrawl,
 }
@@ -100,6 +101,7 @@ func runCrawl(cmd *cobra.Command, args []string) error {
 	crawlerConfig := &crawler.Config{
 		MaxDepth:       depth,
 		SameDomain:     true, // For now, limit to same domain
+		SamePathPrefix: true, // デフォルトでパスプレフィックスフィルタリングを有効にする
 		UserAgent:      userAgent,
 		Logger:         logger,
 		Workers:        concurrent,
