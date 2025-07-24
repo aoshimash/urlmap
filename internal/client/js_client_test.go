@@ -3,32 +3,12 @@ package client
 import (
 	"context"
 	"log/slog"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-// isCIEnvironment returns true if running in a CI environment
-func isCIEnvironment() bool {
-	ciEnvVars := []string{
-		"CI",
-		"GITHUB_ACTIONS",
-		"TRAVIS",
-		"CIRCLECI",
-		"JENKINS_URL",
-		"GITLAB_CI",
-	}
-
-	for _, envVar := range ciEnvVars {
-		if os.Getenv(envVar) != "" {
-			return true
-		}
-	}
-	return false
-}
 
 func TestJSConfig_DefaultConfig(t *testing.T) {
 	config := DefaultJSConfig()
@@ -137,8 +117,8 @@ func TestNewJSClient_InvalidConfig(t *testing.T) {
 }
 
 func TestNewJSClient_EnabledConfig_CI(t *testing.T) {
-	if !isCIEnvironment() {
-		t.Skip("This test only runs in CI environment to verify Playwright installation")
+	if !isGitHubActions() {
+		t.Skip("This test only runs in GitHub Actions to verify Playwright installation")
 	}
 
 	config := &JSConfig{

@@ -12,23 +12,9 @@ import (
 	"github.com/aoshimash/urlmap/internal/client"
 )
 
-// isCIEnvironment returns true if running in a CI environment
-func isCIEnvironment() bool {
-	ciEnvVars := []string{
-		"CI",
-		"GITHUB_ACTIONS",
-		"TRAVIS",
-		"CIRCLECI",
-		"JENKINS_URL",
-		"GITLAB_CI",
-	}
-
-	for _, envVar := range ciEnvVars {
-		if os.Getenv(envVar) != "" {
-			return true
-		}
-	}
-	return false
+// isGitHubActions returns true if running in GitHub Actions
+func isGitHubActions() bool {
+	return os.Getenv("GITHUB_ACTIONS") != ""
 }
 
 const (

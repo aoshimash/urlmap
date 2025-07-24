@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+
+
 func TestNewUnifiedClient_DefaultConfig(t *testing.T) {
 	client, err := NewUnifiedClient(nil, slog.Default())
 
@@ -36,9 +38,9 @@ func TestNewUnifiedClient_HTTPOnly(t *testing.T) {
 }
 
 func TestNewUnifiedClient_JSEnabled(t *testing.T) {
-	// Skip this test in CI environment where Playwright may not be available
-	if isCIEnvironment() {
-		t.Skip("Skipping Playwright test in CI environment")
+	// Skip this test in GitHub Actions where Playwright may not be available
+	if isGitHubActions() {
+		t.Skip("Skipping Playwright test in GitHub Actions")
 	}
 
 	config := &UnifiedConfig{
