@@ -9,8 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-
-
 func TestNewUnifiedClient_DefaultConfig(t *testing.T) {
 	client, err := NewUnifiedClient(nil, slog.Default())
 
