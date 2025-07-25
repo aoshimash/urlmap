@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -442,5 +443,110 @@ func TestJavaScriptFlagValidation(t *testing.T) {
 				assert.NoError(t, err)
 			}
 		})
+	}
+}
+
+func TestOutputFormatFlag(t *testing.T) {
+	tests := []struct {
+		name           string
+		args           []string
+		expectedFormat string
+	}{
+		{
+			name:           "Default format",
+			args:           []string{"https://example.com"},
+			expectedFormat: "text",
+		},
+		{
+			name:           "Text format",
+			args:           []string{"https://example.com", "--output-format", "text"},
+			expectedFormat: "text",
+		},
+		{
+			name:           "JSON format",
+			args:           []string{"https://example.com", "--output-format", "json"},
+			expectedFormat: "json",
+		},
+		{
+			name:           "CSV format",
+			args:           []string{"https://example.com", "--output-format", "csv"},
+			expectedFormat: "csv",
+		},
+		{
+			name:           "XML format",
+			args:           []string{"https://example.com", "--output-format", "xml"},
+			expectedFormat: "xml",
+		},
+		{
+			name:           "Short flag",
+			args:           []string{"https://example.com", "-f", "json"},
+			expectedFormat: "json",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Reset flags to default values
+			outputFormat = "text"
+
+			// Create a new command for each test to avoid flag pollution
+			cmd := &cobra.Command{
+				Use:  "urlmap <URL>",
+				Args: cobra.ExactArgs(1),
+				RunE: func(cmd *cobra.Command, args []string) error {
+					// Just validate the flag value, don't run actual crawl
+					return nil
+				},
+			}
+
+			// Add flags
+			cmd.Flags().StringVarP(&outputFormat, "output-format", "f", "text", "Output format (text, json, csv, xml)")
+
+			// Parse arguments
+			cmd.SetArgs(tt.args)
+			err := cmd.Execute()
+
+			if err != nil {
+				t.Errorf("Command execution failed: %v", err)
+				return
+			}
+
+			if outputFormat != tt.expectedFormat {
+				t.Errorf("Expected output format %s, got %s", tt.expectedFormat, outputFormat)
+			}
+		})
+	}
+}
+
+func TestInvalidOutputFormat(t *testing.T) {
+	// Reset flags to default values
+	outputFormat = "text"
+
+	// Create a command that will validate the format
+	cmd := &cobra.Command{
+		Use:  "urlmap <URL>",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// Simulate the validation from runCrawl
+			switch outputFormat {
+			case "text", "json", "csv", "xml":
+				return nil
+			default:
+				return fmt.Errorf("unsupported output format: %s (supported: text, json, csv, xml)", outputFormat)
+			}
+		},
+	}
+
+	cmd.Flags().StringVarP(&outputFormat, "output-format", "f", "text", "Output format (text, json, csv, xml)")
+	cmd.SetArgs([]string{"https://example.com", "--output-format", "invalid"})
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Error("Expected error for invalid output format, but got none")
+	}
+
+	expectedErrorMessage := "unsupported output format: invalid"
+	if !strings.Contains(err.Error(), expectedErrorMessage) {
+		t.Errorf("Expected error message to contain '%s', got: %s", expectedErrorMessage, err.Error())
 	}
 }
