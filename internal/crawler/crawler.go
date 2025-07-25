@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/aoshimash/urlmap/internal/client"
+	"github.com/aoshimash/urlmap/internal/detector"
 	"github.com/aoshimash/urlmap/internal/parser"
 	"github.com/aoshimash/urlmap/internal/progress"
 	"github.com/aoshimash/urlmap/internal/robots"
@@ -56,6 +57,7 @@ type Crawler struct {
 	stats          CrawlStats            // Crawling statistics
 	workers        int                   // Number of concurrent workers
 	robotsChecker  *robots.RobotsChecker // Robots.txt checker (optional)
+	spaDetector    *detector.SPADetector // SPA detection for automatic JS rendering
 }
 
 // ConcurrentCrawler handles concurrent crawling with worker pool
@@ -140,6 +142,12 @@ func New(config *Config) (*Crawler, error) {
 		workers = 10 // Default number of workers
 	}
 
+	// Initialize SPA detector if auto-detection is enabled
+	var spaDetector *detector.SPADetector
+	if unifiedConfig.JSConfig != nil && (unifiedConfig.JSConfig.AutoDetect || unifiedConfig.JSConfig.StrictMode) {
+		spaDetector = detector.NewSPADetector(config.Logger)
+	}
+
 	return &Crawler{
 		client:         unifiedClient,
 		parser:         linkExtractor,
@@ -152,6 +160,7 @@ func New(config *Config) (*Crawler, error) {
 		results:        make([]CrawlResult, 0),
 		stats:          CrawlStats{},
 		workers:        workers,
+		spaDetector:    spaDetector,
 	}, nil
 }
 
@@ -277,8 +286,38 @@ func (c *Crawler) crawlSingle(targetURL string, depth int) CrawlResult {
 	c.logger.Debug("Fetching URL", "url", targetURL, "depth", depth)
 	startTime := time.Now()
 
-	// Fetch the page
-	response, err := c.client.Get(context.Background(), targetURL)
+	// Check if we should use JavaScript rendering for this URL
+	useJS := false
+	var err error
+	if c.spaDetector != nil {
+		// First get the page with HTTP to check if it's a SPA
+		httpClient := c.client.GetHTTPClient()
+		if httpClient != nil {
+			httpResponse, httpErr := httpClient.Get(context.Background(), targetURL)
+			if httpErr == nil {
+				htmlContent := httpResponse.String()
+				useJS, err = c.shouldUseJSRendering(targetURL, htmlContent)
+				if err != nil {
+					c.logger.Warn("Failed to determine JS rendering need", "url", targetURL, "error", err)
+				}
+			}
+		}
+	}
+
+	// Fetch the page with appropriate method
+	var response client.UnifiedResponse
+	if useJS {
+		jsClient := c.client.GetJSClient()
+		if jsClient != nil {
+			c.logger.Info("Using JavaScript rendering", "url", targetURL)
+			response, err = jsClient.Get(context.Background(), targetURL)
+		} else {
+			c.logger.Warn("JavaScript client not available, falling back to HTTP", "url", targetURL)
+			response, err = c.client.Get(context.Background(), targetURL)
+		}
+	} else {
+		response, err = c.client.Get(context.Background(), targetURL)
+	}
 	result.ResponseTime = time.Since(startTime)
 
 	if err != nil {
@@ -309,6 +348,50 @@ func (c *Crawler) crawlSingle(targetURL string, depth int) CrawlResult {
 
 	c.logger.Debug("Extracted links", "url", targetURL, "link_count", len(result.Links))
 	return result
+}
+
+// shouldUseJSRendering determines whether to use JavaScript rendering for a URL
+func (c *Crawler) shouldUseJSRendering(url, htmlContent string) (bool, error) {
+	jsConfig := c.client.GetJSConfig()
+	if jsConfig == nil {
+		return false, nil
+	}
+
+	// Manual specification
+	if jsConfig.Enabled && !jsConfig.AutoDetect {
+		return true, nil
+	}
+
+	// Automatic detection
+	if jsConfig.AutoDetect && c.spaDetector != nil {
+		result, err := c.spaDetector.DetectSPA(url, htmlContent)
+		if err != nil {
+			c.logger.Warn("SPA detection failed", "url", url, "error", err)
+			return false, nil
+		}
+
+		c.logger.Info("SPA detection completed",
+			"url", url,
+			"is_spa", result.IsSPA,
+			"confidence", result.Confidence,
+			"indicators", result.Indicators,
+		)
+
+		// Strict mode with dynamic verification
+		if jsConfig.StrictMode && result.IsSPA {
+			jsClient := c.client.GetJSClient()
+			if jsClient != nil {
+				jsResult, err := c.spaDetector.VerifyWithJS(context.Background(), url, htmlContent, jsClient)
+				if err == nil && jsResult.Confidence > result.Confidence {
+					result = jsResult
+				}
+			}
+		}
+
+		return result.IsSPA && result.Confidence >= jsConfig.Threshold, nil
+	}
+
+	return false, nil
 }
 
 // GetResults returns the crawling results
@@ -590,7 +673,7 @@ func (cc *ConcurrentCrawler) checkAndCloseJobsChannel() {
 	}
 }
 
-// crawlSingleConcurrent crawls a single URL (thread-safe version)
+// crawlSingleConcurrent crawls a single URL in concurrent mode
 func (cc *ConcurrentCrawler) crawlSingleConcurrent(targetURL string, depth int) CrawlResult {
 	result := CrawlResult{
 		URL:       targetURL,
@@ -601,8 +684,37 @@ func (cc *ConcurrentCrawler) crawlSingleConcurrent(targetURL string, depth int) 
 	cc.logger.Debug("Fetching URL", "url", targetURL, "depth", depth)
 	startTime := time.Now()
 
-	// Fetch the page
-	response, err := cc.client.Get(cc.ctx, targetURL)
+	// Determine if JS rendering is needed (for SPA detection)
+	var useJS bool
+	var err error
+
+	jsConfig := cc.client.GetJSConfig()
+	if jsConfig != nil && jsConfig.AutoDetect {
+		// First fetch with HTTP client to get static HTML for SPA detection
+		httpResponse, httpErr := cc.client.GetHTTPClient().Get(cc.ctx, targetURL)
+		if httpErr == nil {
+			staticHTML := httpResponse.String()
+			useJS, err = cc.shouldUseJSRendering(targetURL, staticHTML)
+			if err != nil {
+				cc.logger.Warn("Failed to determine JS rendering need", "url", targetURL, "error", err)
+			}
+		}
+	}
+
+	// Fetch the page with appropriate method
+	var response client.UnifiedResponse
+	if useJS {
+		jsClient := cc.client.GetJSClient()
+		if jsClient != nil {
+			cc.logger.Info("Using JavaScript rendering", "url", targetURL)
+			response, err = jsClient.Get(cc.ctx, targetURL)
+		} else {
+			cc.logger.Warn("JavaScript client not available, falling back to HTTP", "url", targetURL)
+			response, err = cc.client.Get(cc.ctx, targetURL)
+		}
+	} else {
+		response, err = cc.client.Get(cc.ctx, targetURL)
+	}
 	result.ResponseTime = time.Since(startTime)
 
 	if err != nil {

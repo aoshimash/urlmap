@@ -143,6 +143,24 @@ func (c *UnifiedClient) IsJSEnabled() bool {
 	return c.jsClient != nil && c.config.JSConfig.Enabled
 }
 
+// GetJSConfig returns the JavaScript configuration
+func (c *UnifiedClient) GetJSConfig() *JSConfig {
+	if c.config == nil {
+		return nil
+	}
+	return c.config.JSConfig
+}
+
+// GetJSClient returns the JavaScript client
+func (c *UnifiedClient) GetJSClient() *JSClient {
+	return c.jsClient
+}
+
+// GetHTTPClient returns the HTTP client
+func (c *UnifiedClient) GetHTTPClient() *Client {
+	return c.httpClient
+}
+
 // HTTPResponseWrapper wraps the HTTP response to implement UnifiedResponse
 type HTTPResponseWrapper struct {
 	response *resty.Response
