@@ -10,6 +10,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -328,5 +331,179 @@ func TestCrawlCommand_UserAgent(t *testing.T) {
 	outputStr := string(output)
 	if !strings.Contains(outputStr, server.URL) {
 		t.Errorf("Expected output to contain %s, got: %s", server.URL, outputStr)
+	}
+}
+
+func TestCrawlCommand_JavaScriptRendering(t *testing.T) {
+	// Skip if we're not in an environment that supports Playwright
+	if os.Getenv("SKIP_JS_TESTS") != "" {
+		t.Skip("JavaScript rendering tests skipped (SKIP_JS_TESTS is set)")
+	}
+
+	// Create a simple test server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/spa":
+			w.Header().Set("Content-Type", "text/html")
+			fmt.Fprint(w, `
+				<!DOCTYPE html>
+				<html>
+				<head><title>SPA Test</title></head>
+				<body>
+					<div id="content">Loading...</div>
+					<script>
+						setTimeout(function() {
+							document.getElementById('content').innerHTML =
+								'<a href="/dynamic-link">Dynamic Link</a>';
+						}, 100);
+					</script>
+				</body>
+				</html>
+			`)
+		case "/dynamic-link":
+			w.Header().Set("Content-Type", "text/html")
+			fmt.Fprint(w, `
+				<!DOCTYPE html>
+				<html>
+				<head><title>Dynamic Page</title></head>
+				<body><h1>Dynamic Content</h1></body>
+				</html>
+			`)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	testURL := server.URL + "/spa"
+
+	tests := []struct {
+		name       string
+		args       []string
+		skipReason string
+	}{
+		{
+			name:       "JavaScript rendering enabled",
+			args:       []string{testURL, "--js-render", "--depth", "1"},
+			skipReason: "Requires Playwright browser installation",
+		},
+		{
+			name: "HTTP only (no JavaScript)",
+			args: []string{testURL, "--depth", "1"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipReason != "" {
+				// Try to run the command and skip if it fails due to missing Playwright
+				cmd := exec.Command("go", append([]string{"run", "../../cmd/urlmap"}, tt.args...)...)
+				output, err := cmd.CombinedOutput()
+				if err != nil && (strings.Contains(string(output), "playwright") ||
+					strings.Contains(string(output), "browser")) {
+					t.Skipf("Skipping test: %s", tt.skipReason)
+					return
+				}
+			}
+
+			cmd := exec.Command("go", append([]string{"run", "../../cmd/urlmap"}, tt.args...)...)
+			output, err := cmd.Output()
+
+			require.NoError(t, err, "Command should not fail")
+
+			outputStr := strings.TrimSpace(string(output))
+			assert.NotEmpty(t, outputStr, "Should produce some output")
+
+			// Basic validation that we got URLs back
+			lines := strings.Split(outputStr, "\n")
+			assert.Greater(t, len(lines), 0, "Should have at least one URL")
+		})
+	}
+}
+
+func TestCrawlCommand_JavaScriptOptions(t *testing.T) {
+	// Create a simple test server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprint(w, `
+			<!DOCTYPE html>
+			<html>
+			<head><title>Test</title></head>
+			<body><h1>Test Page</h1></body>
+			</html>
+		`)
+	}))
+	defer server.Close()
+
+	testURL := server.URL
+
+	tests := []struct {
+		name        string
+		args        []string
+		expectError bool
+		skipReason  string
+	}{
+		{
+			name: "Valid JavaScript options - chromium",
+			args: []string{
+				testURL,
+				"--js-render",
+				"--js-browser", "chromium",
+				"--js-timeout", "10s",
+				"--js-wait", "networkidle",
+			},
+			expectError: false,
+			skipReason:  "Requires Playwright browser installation",
+		},
+		{
+			name: "Valid JavaScript options - firefox",
+			args: []string{
+				testURL,
+				"--js-render",
+				"--js-browser", "firefox",
+				"--js-timeout", "10s",
+				"--js-wait", "domcontentloaded",
+			},
+			expectError: false,
+			skipReason:  "Requires Playwright browser installation",
+		},
+		{
+			name:        "JavaScript disabled by default",
+			args:        []string{testURL},
+			expectError: false,
+		},
+		{
+			name: "JavaScript with fallback enabled",
+			args: []string{
+				testURL,
+				"--js-render",
+				"--js-fallback",
+			},
+			expectError: false,
+			skipReason:  "Requires Playwright browser installation",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.skipReason != "" {
+				// Try to run the command and skip if it fails due to missing Playwright
+				cmd := exec.Command("go", append([]string{"run", "../../cmd/urlmap"}, tt.args...)...)
+				output, err := cmd.CombinedOutput()
+				if err != nil && strings.Contains(string(output), "playwright") {
+					t.Skipf("Skipping test: %s", tt.skipReason)
+					return
+				}
+			}
+
+			cmd := exec.Command("go", append([]string{"run", "../../cmd/urlmap"}, tt.args...)...)
+			output, err := cmd.CombinedOutput()
+
+			if tt.expectError {
+				assert.Error(t, err, "Command should fail")
+			} else {
+				assert.NoError(t, err, "Command should not fail. Output: %s", string(output))
+			}
+		})
 	}
 }

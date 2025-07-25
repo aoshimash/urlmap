@@ -43,7 +43,7 @@ type CrawlStats struct {
 
 // Crawler represents a web crawler instance with recursive capabilities
 type Crawler struct {
-	client         *client.Client        // HTTP client for fetching pages
+	client         *client.UnifiedClient // Unified client for fetching pages (HTTP + JS)
 	parser         *parser.LinkExtractor // HTML parser for extracting links
 	logger         *slog.Logger          // Logger for structured logging
 	visited        map[string]bool       // Track visited URLs to prevent duplicates
@@ -76,15 +76,16 @@ type ConcurrentCrawler struct {
 
 // Config holds configuration for the crawler
 type Config struct {
-	MaxDepth       int              // Maximum depth to crawl (-1 = no limit, 0 = root only)
-	SameDomain     bool             // Whether to limit crawling to same domain
-	SamePathPrefix bool             // Whether to limit crawling to same path prefix as start URL
-	UserAgent      string           // User agent to use for requests
-	Timeout        time.Duration    // Request timeout
-	Logger         *slog.Logger     // Logger instance
-	Workers        int              // Number of concurrent workers
-	ShowProgress   bool             // Whether to show progress indicators
-	ProgressConfig *progress.Config // Progress reporting configuration
+	MaxDepth       int                   // Maximum depth to crawl (-1 = no limit, 0 = root only)
+	SameDomain     bool                  // Whether to limit crawling to same domain
+	SamePathPrefix bool                  // Whether to limit crawling to same path prefix as start URL
+	UserAgent      string                // User agent to use for requests
+	Timeout        time.Duration         // Request timeout
+	Logger         *slog.Logger          // Logger instance
+	Workers        int                   // Number of concurrent workers
+	ShowProgress   bool                  // Whether to show progress indicators
+	ProgressConfig *progress.Config      // Progress reporting configuration
+	JSConfig       *client.UnifiedConfig // JavaScript rendering configuration
 }
 
 // DefaultConfig returns a default crawler configuration
@@ -112,11 +113,20 @@ func New(config *Config) (*Crawler, error) {
 		config.Logger = slog.Default()
 	}
 
-	// Create HTTP client
-	httpClient := client.NewClient(&client.Config{
-		UserAgent: config.UserAgent,
-		Timeout:   config.Timeout,
-	})
+	// Create unified client configuration
+	unifiedConfig := config.JSConfig
+	if unifiedConfig == nil {
+		unifiedConfig = &client.UnifiedConfig{
+			UserAgent: config.UserAgent,
+			JSConfig:  &client.JSConfig{Enabled: false}, // Default to HTTP only
+		}
+	}
+
+	// Create unified client
+	unifiedClient, err := client.NewUnifiedClient(unifiedConfig, config.Logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create unified client: %w", err)
+	}
 
 	// Create link extractor
 	linkExtractor := parser.NewLinkExtractor(config.Logger)
@@ -127,7 +137,7 @@ func New(config *Config) (*Crawler, error) {
 	}
 
 	return &Crawler{
-		client:         httpClient,
+		client:         unifiedClient,
 		parser:         linkExtractor,
 		logger:         config.Logger,
 		visited:        make(map[string]bool),

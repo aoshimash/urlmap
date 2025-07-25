@@ -7,7 +7,9 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
+	"github.com/aoshimash/urlmap/internal/client"
 	"github.com/aoshimash/urlmap/internal/config"
 	"github.com/aoshimash/urlmap/internal/crawler"
 	"github.com/aoshimash/urlmap/internal/output"
@@ -30,6 +32,14 @@ var (
 	concurrent   int
 	showProgress bool
 	rateLimit    float64
+
+	// JavaScript rendering flags
+	jsRender   bool
+	jsBrowser  string
+	jsHeadless bool
+	jsTimeout  time.Duration
+	jsWaitType string
+	jsFallback bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -70,6 +80,14 @@ func init() {
 	rootCmd.Flags().BoolVarP(&showProgress, "progress", "p", true, "Show progress indicators (default: true)")
 	rootCmd.Flags().Float64VarP(&rateLimit, "rate-limit", "r", 0, "Rate limit requests per second (0 = no limit)")
 
+	// JavaScript rendering flags
+	rootCmd.Flags().BoolVar(&jsRender, "js-render", false, "Enable JavaScript rendering for SPA sites")
+	rootCmd.Flags().StringVar(&jsBrowser, "js-browser", "chromium", "Browser type for JavaScript rendering (chromium, firefox, webkit)")
+	rootCmd.Flags().BoolVar(&jsHeadless, "js-headless", true, "Run browser in headless mode")
+	rootCmd.Flags().DurationVar(&jsTimeout, "js-timeout", 30*time.Second, "Page load timeout for JavaScript rendering")
+	rootCmd.Flags().StringVar(&jsWaitType, "js-wait", "networkidle", "Wait condition for JavaScript rendering (networkidle, domcontentloaded, load)")
+	rootCmd.Flags().BoolVar(&jsFallback, "js-fallback", true, "Enable fallback to HTTP client on JavaScript rendering errors")
+
 	// Add subcommands
 	rootCmd.AddCommand(versionCmd)
 }
@@ -97,6 +115,26 @@ func runCrawl(cmd *cobra.Command, args []string) error {
 		Logger:       logger,
 	}
 
+	// Create JavaScript configuration if enabled
+	var jsConfig *client.JSConfig
+	if jsRender {
+		jsConfig = &client.JSConfig{
+			Enabled:     true,
+			BrowserType: jsBrowser,
+			Headless:    jsHeadless,
+			Timeout:     jsTimeout,
+			WaitFor:     jsWaitType,
+			UserAgent:   userAgent,
+			Fallback:    jsFallback,
+		}
+	}
+
+	// Create unified client configuration
+	unifiedConfig := &client.UnifiedConfig{
+		UserAgent: userAgent,
+		JSConfig:  jsConfig,
+	}
+
 	// Create crawler configuration
 	crawlerConfig := &crawler.Config{
 		MaxDepth:       depth,
@@ -107,6 +145,7 @@ func runCrawl(cmd *cobra.Command, args []string) error {
 		Workers:        concurrent,
 		ShowProgress:   showProgress,
 		ProgressConfig: progressConfig,
+		JSConfig:       unifiedConfig,
 	}
 
 	// Create and configure the concurrent crawler

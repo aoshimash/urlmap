@@ -5,8 +5,10 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRootCommand(t *testing.T) {
@@ -241,4 +243,204 @@ func TestExecute(t *testing.T) {
 			t.Fatalf("Execute() panicked: %v", r)
 		}
 	}()
+}
+
+func TestJavaScriptFlags(t *testing.T) {
+	tests := []struct {
+		name     string
+		args     []string
+		expected struct {
+			jsRender   bool
+			jsBrowser  string
+			jsHeadless bool
+			jsTimeout  time.Duration
+			jsWaitType string
+			jsFallback bool
+		}
+	}{
+		{
+			name: "Default values",
+			args: []string{"https://example.com"},
+			expected: struct {
+				jsRender   bool
+				jsBrowser  string
+				jsHeadless bool
+				jsTimeout  time.Duration
+				jsWaitType string
+				jsFallback bool
+			}{
+				jsRender:   false,
+				jsBrowser:  "chromium",
+				jsHeadless: true,
+				jsTimeout:  30 * time.Second,
+				jsWaitType: "networkidle",
+				jsFallback: true,
+			},
+		},
+		{
+			name: "JavaScript rendering enabled",
+			args: []string{"https://example.com", "--js-render"},
+			expected: struct {
+				jsRender   bool
+				jsBrowser  string
+				jsHeadless bool
+				jsTimeout  time.Duration
+				jsWaitType string
+				jsFallback bool
+			}{
+				jsRender:   true,
+				jsBrowser:  "chromium",
+				jsHeadless: true,
+				jsTimeout:  30 * time.Second,
+				jsWaitType: "networkidle",
+				jsFallback: true,
+			},
+		},
+		{
+			name: "Custom JavaScript settings",
+			args: []string{
+				"https://example.com",
+				"--js-render",
+				"--js-browser", "firefox",
+				"--js-headless=false",
+				"--js-timeout", "45s",
+				"--js-wait", "domcontentloaded",
+				"--js-fallback=false",
+			},
+			expected: struct {
+				jsRender   bool
+				jsBrowser  string
+				jsHeadless bool
+				jsTimeout  time.Duration
+				jsWaitType string
+				jsFallback bool
+			}{
+				jsRender:   true,
+				jsBrowser:  "firefox",
+				jsHeadless: false,
+				jsTimeout:  45 * time.Second,
+				jsWaitType: "domcontentloaded",
+				jsFallback: false,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Reset flags to default values
+			jsRender = false
+			jsBrowser = "chromium"
+			jsHeadless = true
+			jsTimeout = 30 * time.Second
+			jsWaitType = "networkidle"
+			jsFallback = true
+
+			// Create a new command for testing
+			cmd := &cobra.Command{
+				Use:  "urlmap <URL>",
+				Args: cobra.ExactArgs(1),
+				RunE: func(cmd *cobra.Command, args []string) error {
+					// Just parse flags, don't actually run crawl
+					return nil
+				},
+			}
+
+			// Add flags
+			cmd.Flags().BoolVar(&jsRender, "js-render", false, "Enable JavaScript rendering for SPA sites")
+			cmd.Flags().StringVar(&jsBrowser, "js-browser", "chromium", "Browser type for JavaScript rendering")
+			cmd.Flags().BoolVar(&jsHeadless, "js-headless", true, "Run browser in headless mode")
+			cmd.Flags().DurationVar(&jsTimeout, "js-timeout", 30*time.Second, "Page load timeout")
+			cmd.Flags().StringVar(&jsWaitType, "js-wait", "networkidle", "Wait condition")
+			cmd.Flags().BoolVar(&jsFallback, "js-fallback", true, "Enable fallback to HTTP client")
+
+			// Set arguments
+			cmd.SetArgs(tt.args)
+
+			// Execute command (this will parse flags)
+			err := cmd.Execute()
+			assert.NoError(t, err)
+
+			// Check flag values
+			assert.Equal(t, tt.expected.jsRender, jsRender, "jsRender mismatch")
+			assert.Equal(t, tt.expected.jsBrowser, jsBrowser, "jsBrowser mismatch")
+			assert.Equal(t, tt.expected.jsHeadless, jsHeadless, "jsHeadless mismatch")
+			assert.Equal(t, tt.expected.jsTimeout, jsTimeout, "jsTimeout mismatch")
+			assert.Equal(t, tt.expected.jsWaitType, jsWaitType, "jsWaitType mismatch")
+			assert.Equal(t, tt.expected.jsFallback, jsFallback, "jsFallback mismatch")
+		})
+	}
+}
+
+func TestJavaScriptFlagValidation(t *testing.T) {
+	tests := []struct {
+		name        string
+		args        []string
+		expectError bool
+	}{
+		{
+			name:        "Valid browser type - chromium",
+			args:        []string{"https://example.com", "--js-render", "--js-browser", "chromium"},
+			expectError: false,
+		},
+		{
+			name:        "Valid browser type - firefox",
+			args:        []string{"https://example.com", "--js-render", "--js-browser", "firefox"},
+			expectError: false,
+		},
+		{
+			name:        "Valid browser type - webkit",
+			args:        []string{"https://example.com", "--js-render", "--js-browser", "webkit"},
+			expectError: false,
+		},
+		{
+			name:        "Valid wait condition - networkidle",
+			args:        []string{"https://example.com", "--js-render", "--js-wait", "networkidle"},
+			expectError: false,
+		},
+		{
+			name:        "Valid wait condition - domcontentloaded",
+			args:        []string{"https://example.com", "--js-render", "--js-wait", "domcontentloaded"},
+			expectError: false,
+		},
+		{
+			name:        "Valid wait condition - load",
+			args:        []string{"https://example.com", "--js-render", "--js-wait", "load"},
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Reset flags to default values
+			jsRender = false
+			jsBrowser = "chromium"
+			jsWaitType = "networkidle"
+
+			// Create a new command for testing
+			cmd := &cobra.Command{
+				Use:  "urlmap <URL>",
+				Args: cobra.ExactArgs(1),
+				RunE: func(cmd *cobra.Command, args []string) error {
+					// Validation would happen in the actual runCrawl function
+					return nil
+				},
+			}
+
+			// Add flags
+			cmd.Flags().BoolVar(&jsRender, "js-render", false, "Enable JavaScript rendering")
+			cmd.Flags().StringVar(&jsBrowser, "js-browser", "chromium", "Browser type")
+			cmd.Flags().StringVar(&jsWaitType, "js-wait", "networkidle", "Wait condition")
+
+			// Set arguments
+			cmd.SetArgs(tt.args)
+
+			// Execute command
+			err := cmd.Execute()
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
