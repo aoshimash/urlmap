@@ -35,12 +35,15 @@ var (
 	outputFormat string
 
 	// JavaScript rendering flags
-	jsRender   bool
-	jsBrowser  string
-	jsHeadless bool
-	jsTimeout  time.Duration
-	jsWaitType string
-	jsFallback bool
+	jsRender     bool
+	jsBrowser    string
+	jsHeadless   bool
+	jsTimeout    time.Duration
+	jsWaitType   string
+	jsFallback   bool
+	jsAuto       bool
+	jsAutoStrict bool
+	jsThreshold  float64
 
 	// Robots.txt flags
 	respectRobots bool
@@ -93,6 +96,11 @@ func init() {
 	rootCmd.Flags().StringVar(&jsWaitType, "js-wait", "networkidle", "Wait condition for JavaScript rendering (networkidle, domcontentloaded, load)")
 	rootCmd.Flags().BoolVar(&jsFallback, "js-fallback", true, "Enable fallback to HTTP client on JavaScript rendering errors")
 
+	// Automatic SPA detection flags
+	rootCmd.Flags().BoolVar(&jsAuto, "js-auto", false, "Enable automatic SPA detection")
+	rootCmd.Flags().BoolVar(&jsAutoStrict, "js-auto-strict", false, "Enable strict automatic detection with dynamic verification")
+	rootCmd.Flags().Float64Var(&jsThreshold, "js-threshold", 0.5, "SPA detection threshold (0.0-1.0)")
+
 	// Robots.txt flags
 	rootCmd.Flags().BoolVar(&respectRobots, "respect-robots", false, "Respect robots.txt rules and crawl delays")
 
@@ -125,15 +133,18 @@ func runCrawl(cmd *cobra.Command, args []string) error {
 
 	// Create JavaScript configuration if enabled
 	var jsConfig *client.JSConfig
-	if jsRender {
+	if jsRender || jsAuto || jsAutoStrict {
 		jsConfig = &client.JSConfig{
-			Enabled:     true,
+			Enabled:     jsRender || jsAuto || jsAutoStrict, // 自動検出の場合も有効にする
 			BrowserType: jsBrowser,
 			Headless:    jsHeadless,
 			Timeout:     jsTimeout,
 			WaitFor:     jsWaitType,
 			UserAgent:   userAgent,
 			Fallback:    jsFallback,
+			AutoDetect:  jsAuto || jsAutoStrict,
+			StrictMode:  jsAutoStrict,
+			Threshold:   jsThreshold,
 		}
 	}
 

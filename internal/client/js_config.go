@@ -29,6 +29,12 @@ type JSConfig struct {
 	// AutoDetect indicates whether to automatically detect SPA sites
 	AutoDetect bool
 
+	// StrictMode indicates whether to use strict detection with dynamic verification
+	StrictMode bool
+
+	// Threshold specifies the confidence threshold for SPA detection (0.0-1.0)
+	Threshold float64
+
 	// Fallback indicates whether to fallback to HTTP client on JS errors
 	Fallback bool
 }
@@ -43,6 +49,8 @@ func DefaultJSConfig() *JSConfig {
 		WaitFor:     "networkidle",
 		UserAgent:   "urlmap/1.0",
 		AutoDetect:  false,
+		StrictMode:  false,
+		Threshold:   0.5,
 		Fallback:    true,
 	}
 }
