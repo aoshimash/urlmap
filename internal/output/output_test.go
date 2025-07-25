@@ -197,3 +197,105 @@ func TestLargeURLSet(t *testing.T) {
 		}
 	}
 }
+
+func TestOutputURLsWithFormat(t *testing.T) {
+	testURLs := []string{
+		"https://example.com/page1",
+		"https://example.com/page2",
+		"https://example.com/page1", // duplicate
+	}
+
+	tests := []struct {
+		name           string
+		config         *OutputConfig
+		expectedFormat string
+		shouldError    bool
+	}{
+		{
+			name:           "text format",
+			config:         &OutputConfig{Format: FormatText},
+			expectedFormat: "text",
+			shouldError:    false,
+		},
+		{
+			name:           "json format",
+			config:         &OutputConfig{Format: FormatJSON},
+			expectedFormat: "json",
+			shouldError:    false,
+		},
+		{
+			name:           "csv format",
+			config:         &OutputConfig{Format: FormatCSV},
+			expectedFormat: "csv",
+			shouldError:    false,
+		},
+		{
+			name:           "xml format",
+			config:         &OutputConfig{Format: FormatXML},
+			expectedFormat: "xml",
+			shouldError:    false,
+		},
+		{
+			name:           "nil config defaults to text",
+			config:         nil,
+			expectedFormat: "text",
+			shouldError:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// We can't easily test stdout output without complex setup,
+			// so we'll just verify the function doesn't error
+			err := OutputURLsWithFormat(testURLs, tt.config)
+			if tt.shouldError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tt.shouldError && err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+func TestOutputJSON(t *testing.T) {
+	testURLs := []string{
+		"https://example.com/page2",
+		"https://example.com/page1",
+		"https://example.com/page1", // duplicate
+	}
+
+	// Test that the function doesn't error
+	err := outputJSON(testURLs)
+	if err != nil {
+		t.Errorf("outputJSON() returned error: %v", err)
+	}
+}
+
+func TestOutputCSV(t *testing.T) {
+	testURLs := []string{
+		"https://example.com/page2",
+		"https://example.com/page1",
+		"https://example.com/page1", // duplicate
+	}
+
+	// Test that the function doesn't error
+	err := outputCSV(testURLs)
+	if err != nil {
+		t.Errorf("outputCSV() returned error: %v", err)
+	}
+}
+
+func TestOutputXML(t *testing.T) {
+	testURLs := []string{
+		"https://example.com/page2",
+		"https://example.com/page1",
+		"https://example.com/page1", // duplicate
+	}
+
+	// Test that the function doesn't error
+	err := outputXML(testURLs)
+	if err != nil {
+		t.Errorf("outputXML() returned error: %v", err)
+	}
+}

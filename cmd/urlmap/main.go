@@ -32,6 +32,7 @@ var (
 	concurrent   int
 	showProgress bool
 	rateLimit    float64
+	outputFormat string
 
 	// JavaScript rendering flags
 	jsRender   bool
@@ -79,6 +80,7 @@ func init() {
 	rootCmd.Flags().IntVarP(&concurrent, "concurrent", "c", 10, "Number of concurrent requests")
 	rootCmd.Flags().BoolVarP(&showProgress, "progress", "p", true, "Show progress indicators (default: true)")
 	rootCmd.Flags().Float64VarP(&rateLimit, "rate-limit", "r", 0, "Rate limit requests per second (0 = no limit)")
+	rootCmd.Flags().StringVarP(&outputFormat, "output-format", "f", "text", "Output format (text, json, csv, xml)")
 
 	// JavaScript rendering flags
 	rootCmd.Flags().BoolVar(&jsRender, "js-render", false, "Enable JavaScript rendering for SPA sites")
@@ -204,8 +206,21 @@ func runCrawl(cmd *cobra.Command, args []string) error {
 		allURLs = append(allURLs, result.URL)
 	}
 
+	// Create output configuration
+	outputConfig := &output.OutputConfig{
+		Format: output.OutputFormat(outputFormat),
+	}
+
+	// Validate output format
+	switch outputConfig.Format {
+	case output.FormatText, output.FormatJSON, output.FormatCSV, output.FormatXML:
+		// Valid format
+	default:
+		return fmt.Errorf("unsupported output format: %s (supported: text, json, csv, xml)", outputFormat)
+	}
+
 	// Output URLs to stdout (logs are already going to stderr)
-	if err := output.OutputURLs(allURLs); err != nil {
+	if err := output.OutputURLsWithFormat(allURLs, outputConfig); err != nil {
 		return fmt.Errorf("failed to output URLs: %w", err)
 	}
 
