@@ -316,6 +316,50 @@ curl -I https://example.com
 # Currently not configurable - urlmap validates all certificates
 ```
 
+### Advanced Features
+
+#### Robots.txt Compliance
+
+Respect robots.txt rules and crawl delays:
+
+```bash
+# Enable robots.txt respect (follows Disallow/Allow rules and Crawl-delay)
+urlmap --respect-robots https://example.com
+
+# Combined with other options
+urlmap --respect-robots --verbose --depth 5 https://example.com
+```
+
+#### Output Formats
+
+Choose from multiple output formats:
+
+```bash
+# JSON output
+urlmap --output-format json https://example.com
+
+# CSV output
+urlmap --output-format csv https://example.com
+
+# XML output
+urlmap --output-format xml https://example.com
+
+# Default text output (one URL per line)
+urlmap --output-format text https://example.com
+```
+
+#### JavaScript Rendering
+
+For websites that load content dynamically with JavaScript:
+
+```bash
+# Enable JavaScript rendering
+urlmap --js-render https://spa-website.com
+
+# Configure browser and timeout
+urlmap --js-render --js-browser firefox --js-timeout 60s https://example.com
+```
+
 ### Debugging
 
 Enable verbose logging to troubleshoot issues:
@@ -431,8 +475,8 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ## 🗺 Roadmap
 
 Future enhancements planned:
-- [ ] Robots.txt respect configuration
-- [ ] Custom output formats (JSON, CSV, XML)
+- [x] ✅ **Robots.txt respect configuration** (v0.4.0+)
+- [x] ✅ **Custom output formats (JSON, CSV, XML)** (Available now!)
 - [ ] Plugin system for custom processing
 - [ ] Distributed crawling support
 - [ ] Web UI for monitoring large crawls

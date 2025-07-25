@@ -234,9 +234,41 @@ urlmapは以下の高品質なGoライブラリを使用しています：
 - **[goquery](https://github.com/PuerkitoBio/goquery)** - jQuery風HTMLパーサー
 - **標準ライブラリ** - 並行性、ログ、HTTP処理
 
+## 🤖 高度な機能
+
+### Robots.txt対応
+
+robots.txtルールとクロール遅延を尊重：
+
+```bash
+# robots.txt尊重を有効化（Disallow/Allowルールとクロール遅延に従う）
+urlmap --respect-robots https://example.com
+
+# 他のオプションと組み合わせ
+urlmap --respect-robots --verbose --depth 5 https://example.com
+```
+
+### 出力フォーマット
+
+複数の出力フォーマットから選択：
+
+```bash
+# JSON出力
+urlmap --output-format json https://example.com
+
+# CSV出力
+urlmap --output-format csv https://example.com
+
+# XML出力
+urlmap --output-format xml https://example.com
+
+# デフォルトのテキスト出力（1行1URL）
+urlmap --output-format text https://example.com
+```
+
 ## 🔒 セキュリティ上の考慮事項
 
-- urlmapは基盤となるHTTPライブラリのデフォルト動作でrobots.txtを尊重します
+- urlmapは`--respect-robots`フラグでrobots.txtルールを尊重できます
 - リンク抽出でXSSを防ぐための安全なHTMLパースを使用
 - 悪意のあるリダイレクトを防ぐためのすべてのURLバリデーション
 - デフォルトでHTTPS証明書検証を強制
