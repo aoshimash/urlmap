@@ -41,6 +41,9 @@ var (
 	jsTimeout  time.Duration
 	jsWaitType string
 	jsFallback bool
+
+	// Robots.txt flags
+	respectRobots bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -89,6 +92,9 @@ func init() {
 	rootCmd.Flags().DurationVar(&jsTimeout, "js-timeout", 30*time.Second, "Page load timeout for JavaScript rendering")
 	rootCmd.Flags().StringVar(&jsWaitType, "js-wait", "networkidle", "Wait condition for JavaScript rendering (networkidle, domcontentloaded, load)")
 	rootCmd.Flags().BoolVar(&jsFallback, "js-fallback", true, "Enable fallback to HTTP client on JavaScript rendering errors")
+
+	// Robots.txt flags
+	rootCmd.Flags().BoolVar(&respectRobots, "respect-robots", false, "Respect robots.txt rules and crawl delays")
 
 	// Add subcommands
 	rootCmd.AddCommand(versionCmd)
@@ -148,6 +154,7 @@ func runCrawl(cmd *cobra.Command, args []string) error {
 		ShowProgress:   showProgress,
 		ProgressConfig: progressConfig,
 		JSConfig:       unifiedConfig,
+		RespectRobots:  respectRobots,
 	}
 
 	// Create and configure the concurrent crawler

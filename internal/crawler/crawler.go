@@ -10,6 +10,7 @@ import (
 	"github.com/aoshimash/urlmap/internal/client"
 	"github.com/aoshimash/urlmap/internal/parser"
 	"github.com/aoshimash/urlmap/internal/progress"
+	"github.com/aoshimash/urlmap/internal/robots"
 	"github.com/aoshimash/urlmap/internal/url"
 )
 
@@ -54,24 +55,26 @@ type Crawler struct {
 	results        []CrawlResult         // Results of crawling operations
 	stats          CrawlStats            // Crawling statistics
 	workers        int                   // Number of concurrent workers
+	robotsChecker  *robots.RobotsChecker // Robots.txt checker (optional)
 }
 
 // ConcurrentCrawler handles concurrent crawling with worker pool
 type ConcurrentCrawler struct {
-	*Crawler                                // Embed the original crawler
-	jobs         chan CrawlJob              // Channel for distributing jobs
-	results      chan CrawlResult           // Channel for collecting results
-	visited      sync.Map                   // Thread-safe visited URLs tracker
-	mu           sync.RWMutex               // Mutex for protecting shared state
-	wg           sync.WaitGroup             // WaitGroup for worker synchronization
-	ctx          context.Context            // Context for cancellation
-	cancel       context.CancelFunc         // Cancel function
-	resultsList  []CrawlResult              // Thread-safe results collection
-	activeJobs   int                        // Number of active jobs
-	activeJobsMu sync.Mutex                 // Mutex for active jobs counter
-	progress     *progress.ProgressReporter // Progress reporter for tracking crawl progress
-	jobsClosed   bool                       // Flag to track if jobs channel is closed
-	jobsCloseMu  sync.Mutex                 // Mutex for jobs closed flag
+	*Crawler                                 // Embed the original crawler
+	jobs          chan CrawlJob              // Channel for distributing jobs
+	results       chan CrawlResult           // Channel for collecting results
+	visited       sync.Map                   // Thread-safe visited URLs tracker
+	mu            sync.RWMutex               // Mutex for protecting shared state
+	wg            sync.WaitGroup             // WaitGroup for worker synchronization
+	ctx           context.Context            // Context for cancellation
+	cancel        context.CancelFunc         // Cancel function
+	resultsList   []CrawlResult              // Thread-safe results collection
+	activeJobs    int                        // Number of active jobs
+	activeJobsMu  sync.Mutex                 // Mutex for active jobs counter
+	progress      *progress.ProgressReporter // Progress reporter for tracking crawl progress
+	jobsClosed    bool                       // Flag to track if jobs channel is closed
+	jobsCloseMu   sync.Mutex                 // Mutex for jobs closed flag
+	robotsChecker *robots.RobotsChecker      // Robots.txt checker (optional)
 }
 
 // Config holds configuration for the crawler
@@ -86,6 +89,7 @@ type Config struct {
 	ShowProgress   bool                  // Whether to show progress indicators
 	ProgressConfig *progress.Config      // Progress reporting configuration
 	JSConfig       *client.UnifiedConfig // JavaScript rendering configuration
+	RespectRobots  bool                  // Whether to respect robots.txt rules
 }
 
 // DefaultConfig returns a default crawler configuration
@@ -364,6 +368,16 @@ func NewConcurrentCrawler(config *Config) (*ConcurrentCrawler, error) {
 		resultsList: make([]CrawlResult, 0),
 	}
 
+	// Initialize robots checker if enabled
+	if config != nil && config.RespectRobots {
+		userAgent := config.UserAgent
+		if userAgent == "" {
+			userAgent = "urlmap/1.0"
+		}
+		cc.robotsChecker = robots.NewRobotsChecker(userAgent, config.Logger)
+		cc.Crawler.robotsChecker = cc.robotsChecker
+	}
+
 	// Setup progress reporter if enabled
 	if config != nil && config.ShowProgress {
 		progressConfig := config.ProgressConfig
@@ -480,6 +494,33 @@ func (cc *ConcurrentCrawler) processJob(job CrawlJob, workerID int) {
 	// Apply rate limiting if progress reporter is configured with rate limiting
 	if cc.progress != nil {
 		cc.progress.WaitForRateLimit()
+	}
+
+	// Check robots.txt if enabled
+	if cc.robotsChecker != nil {
+		allowed, err := cc.robotsChecker.IsAllowed(job.URL)
+		if err != nil {
+			cc.logger.Warn("Failed to check robots.txt, allowing by default",
+				"url", job.URL, "error", err)
+		} else if !allowed {
+			cc.logger.Debug("URL disallowed by robots.txt", "url", job.URL)
+			cc.mu.Lock()
+			cc.stats.SkippedURLs++
+			cc.mu.Unlock()
+
+			// Update progress statistics
+			if cc.progress != nil {
+				cc.progress.IncrementSkipped()
+			}
+			cc.checkAndCloseJobsChannel()
+			return
+		}
+
+		// Apply crawl delay from robots.txt
+		if delay, err := cc.robotsChecker.GetCrawlDelay(job.URL); err == nil && delay > 0 {
+			cc.logger.Debug("Applying robots.txt crawl delay", "url", job.URL, "delay", delay)
+			time.Sleep(delay)
+		}
 	}
 
 	// Check depth limit
