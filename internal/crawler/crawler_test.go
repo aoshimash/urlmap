@@ -1,7 +1,10 @@
 package crawler
 
 import (
+	"fmt"
 	"log/slog"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
@@ -249,6 +252,13 @@ func TestConcurrentCrawler_Cancel(t *testing.T) {
 }
 
 func TestConcurrentCrawler_ThreadSafety(t *testing.T) {
+	// Create a test server with simple HTML
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprint(w, `<html><body><h1>Test</h1></body></html>`)
+	}))
+	defer server.Close()
+
 	// This test ensures no race conditions occur during concurrent operations
 	cc, err := NewConcurrentCrawler(&Config{
 		Workers:  2,
@@ -263,8 +273,8 @@ func TestConcurrentCrawler_ThreadSafety(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		// Use a simpler URL that's more likely to work
-		cc.CrawlConcurrent("https://example.com")
+		// Use the test server URL
+		cc.CrawlConcurrent(server.URL)
 	}()
 
 	// Concurrently call GetResults and GetStats
@@ -279,7 +289,7 @@ func TestConcurrentCrawler_ThreadSafety(t *testing.T) {
 	select {
 	case <-done:
 		// Test completed successfully
-	case <-time.After(5 * time.Second):
+	case <-time.After(3 * time.Second):
 		t.Error("Test timed out")
 		cc.Cancel()
 		<-done // Wait for goroutine to finish

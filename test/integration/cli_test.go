@@ -378,9 +378,9 @@ func TestCrawlCommand_JavaScriptRendering(t *testing.T) {
 	testURL := server.URL + "/spa"
 
 	tests := []struct {
-		name        string
-		args        []string
-		skipReason  string
+		name       string
+		args       []string
+		skipReason string
 	}{
 		{
 			name:       "JavaScript rendering enabled",
