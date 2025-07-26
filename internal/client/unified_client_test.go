@@ -36,10 +36,6 @@ func TestNewUnifiedClient_HTTPOnly(t *testing.T) {
 }
 
 func TestNewUnifiedClient_JSEnabled(t *testing.T) {
-	// Skip this test in GitHub Actions where Playwright may not be available
-	if isGitHubActions() {
-		t.Skip("Skipping Playwright test in GitHub Actions")
-	}
 
 	config := &UnifiedConfig{
 		UserAgent: "test-agent",
