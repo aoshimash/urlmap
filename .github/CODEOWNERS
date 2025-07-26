@@ -1,0 +1,22 @@
+# Code Owners for urlmap project
+# These owners will be requested for review when someone opens a pull request.
+
+# Default owners for everything in the repo
+* @aoshimash
+
+# CI/CD configuration
+/.github/ @aoshimash
+
+# Core functionality
+/internal/crawler/ @aoshimash
+/internal/client/ @aoshimash
+/internal/parser/ @aoshimash
+
+# Tests require careful review
+/test/ @aoshimash
+*_test.go @aoshimash
+
+# Documentation
+/docs/ @aoshimash
+*.md @aoshimash
+CLAUDE.md @aoshimash

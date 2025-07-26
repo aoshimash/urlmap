@@ -1,0 +1,106 @@
+name: PR Validation
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  validate-pr:
+    name: Validate PR
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check PR Title
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          requireScope: false
+          subjectPattern: ^[A-Z].*[^.]$
+          subjectPatternError: |
+            The subject "{subject}" found in the pull request title "{title}"
+            should start with an uppercase letter and not end with a period.
+
+      - name: Check PR Description
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const body = pr.body || '';
+            
+            // Check if PR description is not empty
+            if (body.trim().length < 50) {
+              core.setFailed('PR description is too short. Please provide a detailed description.');
+              return;
+            }
+            
+            // Check for required sections in PR template
+            const requiredSections = [
+              '## Summary',
+              '## Type of Change',
+              '## Testing Checklist',
+              '## How Has This Been Tested?'
+            ];
+            
+            const missingSections = requiredSections.filter(section => !body.includes(section));
+            
+            if (missingSections.length > 0) {
+              core.setFailed(`PR description is missing required sections: ${missingSections.join(', ')}`);
+              return;
+            }
+            
+            // Check if at least one type of change is selected
+            const typeOfChangeRegex = /- \[x\] (Bug fix|New feature|Breaking change|Documentation update|Performance improvement|Refactoring)/i;
+            if (!typeOfChangeRegex.test(body)) {
+              core.setFailed('Please select at least one type of change in the PR template.');
+              return;
+            }
+            
+            console.log('PR validation passed!');
+
+      - name: Label PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const body = pr.body || '';
+            const labels = [];
+            
+            // Add labels based on type of change
+            if (body.includes('- [x] Bug fix')) labels.push('bug');
+            if (body.includes('- [x] New feature')) labels.push('enhancement');
+            if (body.includes('- [x] Breaking change')) labels.push('breaking-change');
+            if (body.includes('- [x] Documentation update')) labels.push('documentation');
+            if (body.includes('- [x] Performance improvement')) labels.push('performance');
+            if (body.includes('- [x] Refactoring')) labels.push('refactoring');
+            
+            // Add labels based on files changed
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number
+            });
+            
+            if (files.some(f => f.filename.includes('test'))) labels.push('tests');
+            if (files.some(f => f.filename.startsWith('.github/'))) labels.push('ci/cd');
+            
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: labels
+              });
+            }

@@ -1,84 +1,52 @@
-# Pull Request
+# PR Description
 
-## 📝 Summary
-<!-- Provide a brief summary of what this PR changes -->
+## Summary
+<!-- Provide a brief summary of the changes -->
 
-## 🎯 Type of Change
-<!-- Check all that apply -->
-- [ ] 🐛 Bug fix
-- [ ] ✨ New feature
-- [ ] 💄 Style/UI changes
-- [ ] ♻️ Refactoring
-- [ ] 📝 Documentation update
-- [ ] 🧪 Test addition/modification
-- [ ] 🔧 Configuration changes
-- [ ] 🗑 Removal/deprecation
-- [ ] 🚀 Performance improvement
+## Type of Change
+- [ ] Bug fix (non-breaking change which fixes an issue)
+- [ ] New feature (non-breaking change which adds functionality)
+- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
+- [ ] Documentation update
+- [ ] Performance improvement
+- [ ] Refactoring
 
-## 🔄 Changes Made
-<!-- List the detailed changes made in this PR -->
--
--
--
+## Testing Checklist
+**All items must be checked before merging:**
 
-## 🧪 Testing
-<!-- Provide information about testing -->
-- [ ] Added/updated unit tests
-- [ ] Added/updated integration tests
-- [ ] Performed manual testing
-- [ ] No testing required (documentation updates, etc.)
+- [ ] I have written tests for my changes following TDD (Test-Driven Development)
+- [ ] All new tests pass locally (`go test ./...`)
+- [ ] All existing tests pass locally
+- [ ] I have added unit tests for new functionality
+- [ ] I have added integration tests where appropriate
+- [ ] I have added e2e tests for user-facing features (if applicable)
+- [ ] I have added performance tests for performance-critical code (if applicable)
+- [ ] Test coverage for new code is adequate (aim for >80%)
 
-### Testing Steps
-<!-- If manual testing is required, provide the testing steps -->
-```bash
-# Example testing steps
-go test ./...
-go run ./cmd/urlmap --help
-```
+## Code Quality
+- [ ] My code follows the project's style guidelines
+- [ ] I have run `go fmt ./...`
+- [ ] I have run `go vet ./...`
+- [ ] I have run linters if available
+- [ ] I have performed a self-review of my own code
+- [ ] I have commented my code, particularly in hard-to-understand areas
+- [ ] My changes generate no new warnings
 
-## 📋 Checklist
-<!-- Check all items before submitting the PR -->
-- [ ] Code builds successfully
-- [ ] All tests pass
-- [ ] No lint errors (`go vet ./...`)
-- [ ] Appropriate comments have been added
-- [ ] README and related documentation updated (if necessary)
-- [ ] Migration guide included (if breaking changes)
-- [ ] **Related issue has been linked below** ⬇️
+## Documentation
+- [ ] I have updated the README if needed
+- [ ] I have updated inline documentation
+- [ ] I have updated CLAUDE.md if development practices changed
 
-## 🔗 Related Issue (REQUIRED)
-<!--
-🚨 IMPORTANT: Every PR must be linked to an issue!
-Use one of the following keywords to automatically close the issue when this PR is merged:
-- "Fixes #123" - Use for bug fixes
-- "Closes #123" - Use for feature implementations
-- "Resolves #123" - Use for general issue resolution
+## Breaking Changes
+- [ ] I have verified that my changes don't break existing functionality
+- [ ] If this is a breaking change, I have updated all affected code
+- [ ] If this is a breaking change, I have documented the migration path
 
-Replace 123 with the actual issue number. This will automatically close the issue when the PR is merged.
-If no issue exists, please create one first.
--->
-Fixes #
-<!-- OR -->
-Closes #
-<!-- OR -->
-Resolves #
+## How Has This Been Tested?
+<!-- Describe the tests that you ran to verify your changes -->
 
-## 📸 Screenshots/Logs
-<!-- Add screenshots or logs if there are UI changes or output changes -->
+## Screenshots (if appropriate)
+<!-- Add screenshots to help explain your changes -->
 
-## ⚠️ Special Notes
-<!-- Highlight any special considerations for reviewers -->
--
--
-
-## 🚀 Post-deployment Verification
-<!-- List items to verify in production environment -->
-<!-- Remove this section if not applicable -->
-- [ ]
-- [ ]
-
----
-## For Reviewers
-<!-- Add any messages for reviewers -->
-
-<!-- Don't forget to set appropriate labels, assignees, and reviewers -->
+## Additional Context
+<!-- Add any other context about the PR here -->
