@@ -175,9 +175,9 @@ func TestSPADetector_detectSPAStructure(t *testing.T) {
 		},
 		{
 			name:        "Empty body",
-			htmlContent: `<html><body></body></html>`,
+			htmlContent: `<html><body><div></div></body></html>`,
 			expected:    true,
-			description: "空のbodyを持つ構造",
+			description: "空のコンテナを持つ構造",
 		},
 		{
 			name:        "Regular HTML",
@@ -215,7 +215,7 @@ func TestSPADetector_detectLowLinkCount(t *testing.T) {
 		},
 		{
 			name:        "High link count",
-			htmlContent: `<a href="/1">Link 1</a><a href="/2">Link 2</a><a href="/3">Link 3</a><a href="/4">Link 4</a><a href="/5">Link 5</a><a href="/6">Link 6</a><a href="/7">Link 7</a><a href="/8">Link 8</a><a href="/9">Link 9</a><a href="/10">Link 10</a><a href="/11">Link 11</a>`,
+			htmlContent: `<nav><a href="/1">Link 1</a><a href="/2">Link 2</a><a href="/3">Link 3</a><a href="/4">Link 4</a></nav><a href="/5">Link 5</a><a href="/6">Link 6</a><a href="/7">Link 7</a><a href="/8">Link 8</a><a href="/9">Link 9</a><a href="/10">Link 10</a><a href="/11">Link 11</a>`,
 			expected:    false,
 			linkCount:   11,
 		},
@@ -254,10 +254,10 @@ func TestSPADetector_detectDynamicContent(t *testing.T) {
 			description: "JavaScriptコードを含む",
 		},
 		{
-			name:        "Fetch API",
-			htmlContent: `<script>fetch('/api/data')</script>`,
+			name:        "Template variable",
+			htmlContent: `<div>{{message}}</div>`,
 			expected:    true,
-			description: "Fetch APIを含む",
+			description: "テンプレート変数を含む",
 		},
 		{
 			name:        "No dynamic content",

@@ -381,7 +381,7 @@ func (c *Crawler) shouldUseJSRendering(url, htmlContent string) (bool, error) {
 		if jsConfig.StrictMode && result.IsSPA {
 			jsClient := c.client.GetJSClient()
 			if jsClient != nil {
-				jsResult, err := c.spaDetector.VerifyWithJS(context.Background(), url, htmlContent, jsClient)
+				jsResult, err := c.spaDetector.VerifyWithJS(url, htmlContent, jsClient)
 				if err == nil && jsResult.Confidence > result.Confidence {
 					result = jsResult
 				}
