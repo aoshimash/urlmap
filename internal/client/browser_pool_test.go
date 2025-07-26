@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"log/slog"
+	"os"
 	"testing"
 	"time"
 )
@@ -15,7 +16,11 @@ func TestNewBrowserPool(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create browser pool: %v", err)
 	}
-	defer pool.Close()
+	if err := pool.Close(); err != nil {
+		t.Fatalf("Failed to close pool: %v", err)
+	}
+	// Give time for browser process to fully terminate
+	time.Sleep(100 * time.Millisecond)
 
 	// Test with custom config
 	config := &JSConfig{
@@ -29,7 +34,11 @@ func TestNewBrowserPool(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create browser pool with custom config: %v", err)
 	}
-	defer pool2.Close()
+	if err := pool2.Close(); err != nil {
+		t.Fatalf("Failed to close pool2: %v", err)
+	}
+	// Give time for browser process to fully terminate
+	time.Sleep(100 * time.Millisecond)
 }
 
 func TestBrowserPool_AcquireContext(t *testing.T) {
@@ -45,7 +54,12 @@ func TestBrowserPool_AcquireContext(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create browser pool: %v", err)
 	}
-	defer pool.Close()
+	defer func() {
+		if err := pool.Close(); err != nil {
+			t.Errorf("Failed to close pool: %v", err)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}()
 
 	// Acquire first context
 	ctx1, err := pool.AcquireContext()
@@ -78,6 +92,11 @@ func TestBrowserPool_AcquireContext(t *testing.T) {
 }
 
 func TestBrowserPool_RenderPage(t *testing.T) {
+	// Skip this test in CI as it requires external network access
+	if testing.Short() || os.Getenv("CI") == "true" {
+		t.Skip("Skipping test that requires external network access")
+	}
+
 	logger := slog.Default()
 	config := &JSConfig{
 		Enabled:     true,
@@ -90,7 +109,12 @@ func TestBrowserPool_RenderPage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create browser pool: %v", err)
 	}
-	defer pool.Close()
+	defer func() {
+		if err := pool.Close(); err != nil {
+			t.Errorf("Failed to close pool: %v", err)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}()
 
 	// Test rendering a simple page
 	ctx := context.Background()
@@ -123,7 +147,12 @@ func TestBrowserPool_GetPoolStats(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create browser pool: %v", err)
 	}
-	defer pool.Close()
+	defer func() {
+		if err := pool.Close(); err != nil {
+			t.Errorf("Failed to close pool: %v", err)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}()
 
 	stats := pool.GetPoolStats()
 
@@ -163,7 +192,12 @@ func TestBrowserPool_ConcurrentAccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create browser pool: %v", err)
 	}
-	defer pool.Close()
+	defer func() {
+		if err := pool.Close(); err != nil {
+			t.Errorf("Failed to close pool: %v", err)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}()
 
 	// Test concurrent context acquisition
 	done := make(chan bool, 5)
@@ -228,6 +262,9 @@ func TestBrowserPool_Close(t *testing.T) {
 	if !stats["closed"].(bool) {
 		t.Error("Pool should be marked as closed")
 	}
+	
+	// Give time for browser process to fully terminate
+	time.Sleep(100 * time.Millisecond)
 }
 
 func TestBrowserContext_ReleaseContext(t *testing.T) {
@@ -244,7 +281,12 @@ func TestBrowserContext_ReleaseContext(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create browser pool: %v", err)
 	}
-	defer pool.Close()
+	defer func() {
+		if err := pool.Close(); err != nil {
+			t.Errorf("Failed to close pool: %v", err)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}()
 
 	// Acquire context
 	ctx, err := pool.AcquireContext()

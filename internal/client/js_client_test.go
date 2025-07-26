@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"log/slog"
+	"os"
 	"testing"
 	"time"
 )
@@ -15,7 +16,10 @@ func TestNewJSClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create JS client: %v", err)
 	}
-	defer client.Close()
+	if err := client.Close(); err != nil {
+		t.Errorf("Failed to close client: %v", err)
+	}
+	time.Sleep(100 * time.Millisecond)
 
 	// Test with custom config
 	config := &JSConfig{
@@ -30,10 +34,18 @@ func TestNewJSClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create JS client with custom config: %v", err)
 	}
-	defer client2.Close()
+	if err := client2.Close(); err != nil {
+		t.Errorf("Failed to close client2: %v", err)
+	}
+	time.Sleep(100 * time.Millisecond)
 }
 
 func TestJSClient_RenderPage(t *testing.T) {
+	// Skip this test in CI as it requires external network access
+	if testing.Short() || os.Getenv("CI") == "true" {
+		t.Skip("Skipping test that requires external network access")
+	}
+
 	logger := slog.Default()
 	config := &JSConfig{
 		Enabled:     true,
@@ -47,7 +59,12 @@ func TestJSClient_RenderPage(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create JS client: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Errorf("Failed to close client: %v", err)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}()
 
 	// Test rendering a simple page
 	ctx := context.Background()
@@ -67,6 +84,11 @@ func TestJSClient_RenderPage(t *testing.T) {
 }
 
 func TestJSClient_Get(t *testing.T) {
+	// Skip this test in CI as it requires external network access
+	if testing.Short() || os.Getenv("CI") == "true" {
+		t.Skip("Skipping test that requires external network access")
+	}
+
 	logger := slog.Default()
 	config := &JSConfig{
 		Enabled:     true,
@@ -80,7 +102,12 @@ func TestJSClient_Get(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create JS client: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Errorf("Failed to close client: %v", err)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}()
 
 	// Test getting a page
 	ctx := context.Background()
@@ -124,7 +151,12 @@ func TestJSClient_GetPoolStats(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create JS client: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Errorf("Failed to close client: %v", err)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}()
 
 	stats := client.GetPoolStats()
 	if stats == nil {
@@ -153,7 +185,12 @@ func TestJSClient_Disabled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create JS client: %v", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Errorf("Failed to close client: %v", err)
+		}
+		time.Sleep(100 * time.Millisecond)
+	}()
 
 	// Test that rendering fails when disabled
 	ctx := context.Background()

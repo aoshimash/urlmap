@@ -103,7 +103,12 @@ func TestUnifiedClient_Get_HTTPOnly(t *testing.T) {
 
 		client, err := NewUnifiedClient(config, slog.Default())
 		require.NoError(t, err)
-		defer client.Close()
+		defer func() {
+			if err := client.Close(); err != nil {
+				t.Errorf("Failed to close client: %v", err)
+			}
+			time.Sleep(100 * time.Millisecond)
+		}()
 
 		ctx := context.Background()
 		response, err := client.Get(ctx, "https://httpbin.org/get")
@@ -159,7 +164,12 @@ func TestUnifiedClient_GetWithFallback_NoJS(t *testing.T) {
 
 		client, err := NewUnifiedClient(config, slog.Default())
 		require.NoError(t, err)
-		defer client.Close()
+		defer func() {
+			if err := client.Close(); err != nil {
+				t.Errorf("Failed to close client: %v", err)
+			}
+			time.Sleep(100 * time.Millisecond)
+		}()
 
 		// With JS disabled, GetWithFallback should behave like regular Get
 		ctx := context.Background()
