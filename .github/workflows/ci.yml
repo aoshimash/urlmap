@@ -12,7 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/playwright:v1.48.0-noble
-      options: --user 1001
 
     strategy:
       matrix:
