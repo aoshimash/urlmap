@@ -39,7 +39,7 @@ func (dc *DetectionCache) Get(domain string) (*DetectionResult, bool) {
 	return result, true
 }
 
-// Set 検出結果をキャッシュに保存
+// Set キャッシュに検出結果を保存
 func (dc *DetectionCache) Set(domain string, result *DetectionResult) {
 	dc.mutex.Lock()
 	defer dc.mutex.Unlock()
@@ -55,10 +55,44 @@ func (dc *DetectionCache) Clear() {
 	dc.cache = make(map[string]*DetectionResult)
 }
 
+// Cleanup 期限切れのエントリを削除
+func (dc *DetectionCache) Cleanup() {
+	dc.mutex.Lock()
+	defer dc.mutex.Unlock()
+
+	now := time.Now()
+	for domain, result := range dc.cache {
+		if now.Sub(result.Timestamp) > dc.ttl {
+			delete(dc.cache, domain)
+		}
+	}
+}
+
 // Size キャッシュサイズを取得
 func (dc *DetectionCache) Size() int {
 	dc.mutex.RLock()
 	defer dc.mutex.RUnlock()
 
 	return len(dc.cache)
+}
+
+// GetStats キャッシュ統計を取得
+func (dc *DetectionCache) GetStats() map[string]interface{} {
+	dc.mutex.RLock()
+	defer dc.mutex.RUnlock()
+
+	// 期限切れエントリのカウント
+	expiredCount := 0
+	now := time.Now()
+	for _, result := range dc.cache {
+		if now.Sub(result.Timestamp) > dc.ttl {
+			expiredCount++
+		}
+	}
+
+	return map[string]interface{}{
+		"total_entries":   len(dc.cache),
+		"expired_entries": expiredCount,
+		"ttl_seconds":     dc.ttl.Seconds(),
+	}
 }

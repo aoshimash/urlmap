@@ -45,6 +45,14 @@ var (
 	jsAutoStrict bool
 	jsThreshold  float64
 
+	// Performance optimization flags
+	jsBlockResources bool
+	jsPoolSize       int
+	jsWorkers        int
+	jsCacheSize      int
+	jsCacheTTL       time.Duration
+	jsMetrics        bool
+
 	// Robots.txt flags
 	respectRobots bool
 )
@@ -96,6 +104,14 @@ func init() {
 	rootCmd.Flags().StringVar(&jsWaitType, "js-wait", "networkidle", "Wait condition for JavaScript rendering (networkidle, domcontentloaded, load)")
 	rootCmd.Flags().BoolVar(&jsFallback, "js-fallback", true, "Enable fallback to HTTP client on JavaScript rendering errors")
 
+	// Performance optimization flags
+	rootCmd.Flags().BoolVar(&jsBlockResources, "js-block-resources", false, "Block images, fonts, and stylesheets for performance")
+	rootCmd.Flags().IntVar(&jsPoolSize, "js-pool-size", 3, "Browser pool maximum size")
+	rootCmd.Flags().IntVar(&jsWorkers, "js-workers", 5, "Number of concurrent JavaScript rendering workers")
+	rootCmd.Flags().IntVar(&jsCacheSize, "js-cache-size", 1000, "Render cache maximum entries")
+	rootCmd.Flags().DurationVar(&jsCacheTTL, "js-cache-ttl", 1*time.Hour, "Render cache TTL")
+	rootCmd.Flags().BoolVar(&jsMetrics, "js-metrics", false, "Enable performance metrics collection")
+
 	// Automatic SPA detection flags
 	rootCmd.Flags().BoolVar(&jsAuto, "js-auto", false, "Enable automatic SPA detection")
 	rootCmd.Flags().BoolVar(&jsAutoStrict, "js-auto-strict", false, "Enable strict automatic detection with dynamic verification")
@@ -135,23 +151,37 @@ func runCrawl(cmd *cobra.Command, args []string) error {
 	var jsConfig *client.JSConfig
 	if jsRender || jsAuto || jsAutoStrict {
 		jsConfig = &client.JSConfig{
-			Enabled:     jsRender || jsAuto || jsAutoStrict, // 自動検出の場合も有効にする
-			BrowserType: jsBrowser,
-			Headless:    jsHeadless,
-			Timeout:     jsTimeout,
-			WaitFor:     jsWaitType,
-			UserAgent:   userAgent,
-			Fallback:    jsFallback,
-			AutoDetect:  jsAuto || jsAutoStrict,
-			StrictMode:  jsAutoStrict,
-			Threshold:   jsThreshold,
+			Enabled:        jsRender || jsAuto || jsAutoStrict, // 自動検出の場合も有効にする
+			BrowserType:    jsBrowser,
+			Headless:       jsHeadless,
+			Timeout:        jsTimeout,
+			WaitFor:        jsWaitType,
+			UserAgent:      userAgent,
+			Fallback:       jsFallback,
+			AutoDetect:     jsAuto || jsAutoStrict,
+			StrictMode:     jsAutoStrict,
+			Threshold:      jsThreshold,
+			BlockResources: jsBlockResources,
+		}
+	}
+
+	// Create optimized JS configuration if performance optimization is enabled
+	var optimizedJSConfig *client.OptimizedJSConfig
+	if jsMetrics || jsBlockResources || jsPoolSize > 3 || jsWorkers > 5 || jsCacheSize > 1000 || jsCacheTTL != 1*time.Hour {
+		optimizedJSConfig = &client.OptimizedJSConfig{
+			JSConfig:        jsConfig,
+			CacheSize:       jsCacheSize,
+			CacheTTL:        jsCacheTTL,
+			ConcurrentLimit: jsWorkers,
+			EnableMetrics:   jsMetrics,
 		}
 	}
 
 	// Create unified client configuration
 	unifiedConfig := &client.UnifiedConfig{
-		UserAgent: userAgent,
-		JSConfig:  jsConfig,
+		UserAgent:         userAgent,
+		JSConfig:          jsConfig,
+		OptimizedJSConfig: optimizedJSConfig,
 	}
 
 	// Create crawler configuration

@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go test:*)",
+      "Bash(gh run view:*)",
+      "Bash(CI=true go test ./... -v)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git reset:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh run list:*)",
+      "Bash(CI=true go test ./test/e2e/js_rendering_test.go -v)",
+      "Bash(CI=true go test ./test/performance/js_performance_test.go -v)"
+    ],
+    "deny": []
+  }
+}

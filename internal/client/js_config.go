@@ -37,6 +37,9 @@ type JSConfig struct {
 
 	// Fallback indicates whether to fallback to HTTP client on JS errors
 	Fallback bool
+
+	// BlockResources indicates whether to block images, fonts, and stylesheets for performance
+	BlockResources bool
 }
 
 // DefaultJSConfig returns a default JavaScript configuration

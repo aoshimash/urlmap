@@ -10,6 +10,8 @@ A fast and efficient web crawler CLI tool for discovering and mapping URLs withi
 ## 🚀 Features
 
 - **Recursive Link Discovery**: Automatically discover all links within a website
+- **JavaScript Rendering**: Support for SPA and dynamic content with Playwright
+- **Automatic SPA Detection**: Smart detection of Single Page Applications
 - **Same-Domain Filtering**: Focus crawling on a specific domain to avoid external links
 - **Concurrent Processing**: High-performance crawling with configurable worker pools
 - **Depth Limiting**: Control crawl depth to prevent infinite recursion
@@ -19,6 +21,7 @@ A fast and efficient web crawler CLI tool for discovering and mapping URLs withi
 - **Structured Logging**: Comprehensive logging with verbose mode support
 - **Multiple Output Formats**: URLs output to stdout, logs to stderr
 - **Custom User Agent**: Configurable user agent strings for identification
+- **Performance Optimization**: Browser pooling, rendering cache, and metrics collection
 
 ## 📦 Installation
 
@@ -129,6 +132,25 @@ urlmap --progress=false https://example.com
 urlmap --depth 5 --concurrent 15 --verbose --rate-limit 2 https://example.com
 ```
 
+### JavaScript Rendering
+
+```bash
+# Enable JavaScript rendering for SPA sites
+urlmap --js-render https://spa-site.com
+
+# Automatic SPA detection
+urlmap --js-auto https://unknown-site.com
+
+# Strict mode with dynamic verification
+urlmap --js-auto-strict https://complex-spa.com
+
+# Custom browser and timeout settings
+urlmap --js-render --js-browser firefox --js-timeout 60s https://slow-spa.com
+
+# Performance optimization
+urlmap --js-render --js-block-resources --js-workers 10 --js-cache-size 2000 https://large-spa.com
+```
+
 ### Docker Usage
 
 ```bash
@@ -147,6 +169,8 @@ docker run -it --rm ghcr.io/aoshimash/urlmap:latest /bin/sh
 
 ## 🔧 Command Line Options
 
+### Basic Options
+
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
 | `--depth` | `-d` | -1 (unlimited) | Maximum crawl depth |
@@ -156,6 +180,30 @@ docker run -it --rm ghcr.io/aoshimash/urlmap:latest /bin/sh
 | `--progress` | `-p` | true | Show progress indicators |
 | `--rate-limit` | `-r` | 0 (no limit) | Rate limit (requests per second) |
 | `--help` | `-h` | - | Show help message |
+
+### JavaScript Rendering Options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--js-render` | false | Enable JavaScript rendering |
+| `--js-auto` | false | Automatic SPA detection |
+| `--js-auto-strict` | false | Strict SPA detection with verification |
+| `--js-browser` | chromium | Browser type (chromium/firefox/webkit) |
+| `--js-timeout` | 30s | Page load timeout |
+| `--js-wait` | networkidle | Wait condition (networkidle/domcontentloaded) |
+| `--js-fallback` | false | Enable HTTP fallback on JS errors |
+| `--js-threshold` | 0.3 | SPA detection threshold |
+
+### Performance Optimization Options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--js-pool-size` | 3 | Browser pool maximum size |
+| `--js-workers` | 5 | Number of concurrent JS workers |
+| `--js-cache-size` | 1000 | Render cache maximum entries |
+| `--js-cache-ttl` | 1h | Render cache TTL |
+| `--js-block-resources` | false | Block images, CSS, fonts for performance |
+| `--js-metrics` | false | Enable performance metrics collection |
 
 ## 📋 Examples
 
@@ -193,6 +241,22 @@ urlmap --concurrent 50 --verbose https://large-site.example.com
 ```bash
 # Limit to 1 request per second with custom user agent
 urlmap --rate-limit 1 --user-agent "Research Bot 1.0 (contact@example.com)" https://example.com
+```
+
+### JavaScript Rendering Examples
+
+```bash
+# Crawl a React SPA
+urlmap --js-render https://react-app.com
+
+# Automatic detection for unknown sites
+urlmap --js-auto https://unknown-site.com
+
+# High-performance crawling with optimization
+urlmap --js-render --js-block-resources --js-workers 8 --js-cache-size 2000 https://large-spa.com
+
+# Docker with JavaScript rendering
+docker run --rm ghcr.io/aoshimash/urlmap:latest --js-render https://spa-site.com
 ```
 
 ### Save Results to File

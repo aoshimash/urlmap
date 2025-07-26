@@ -98,7 +98,7 @@ func TestJavaScriptRendering_Docker(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping Docker test in short mode")
 	}
-	
+
 	// CI環境ではDockerテストをスキップ
 	if os.Getenv("CI") == "true" {
 		t.Skip("Skipping Docker test in CI environment")
