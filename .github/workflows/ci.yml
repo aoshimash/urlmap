@@ -45,6 +45,12 @@ jobs:
       - name: Build
         run: go build -v ./...
 
+      - name: Install Playwright CLI
+        run: go install github.com/playwright-community/playwright-go/cmd/playwright@latest
+
+      - name: Install Playwright browsers
+        run: playwright install --with-deps chromium
+
       - name: Run tests
         run: go test -v -race -coverprofile=coverage.out ./...
 
