@@ -262,7 +262,7 @@ func TestBrowserPool_Close(t *testing.T) {
 	if !stats["closed"].(bool) {
 		t.Error("Pool should be marked as closed")
 	}
-	
+
 	// Give time for browser process to fully terminate
 	time.Sleep(100 * time.Millisecond)
 }
