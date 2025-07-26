@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
+	"testing"
 	"time"
 
 	"github.com/playwright-community/playwright-go"
@@ -213,6 +214,12 @@ func (p *BrowserPool) RenderPage(ctx context.Context, targetURL string) (string,
 	}
 	defer page.Close()
 
+	// Setup debug handlers if running in test mode
+	var consoleLogs, networkLogs []string
+	if testing.Testing() {
+		consoleLogs, networkLogs = SetupPageDebugHandlers(page)
+	}
+
 	// Set timeout
 	page.SetDefaultTimeout(float64(p.config.Timeout.Milliseconds()))
 
@@ -234,12 +241,28 @@ func (p *BrowserPool) RenderPage(ctx context.Context, targetURL string) (string,
 		Timeout:   playwright.Float(float64(p.config.Timeout.Milliseconds())),
 	})
 	if err != nil {
+		// Log debug info when running in test mode
+		if testing.Testing() && (len(consoleLogs) > 0 || len(networkLogs) > 0) {
+			p.logger.Error("Navigation failed with debug info",
+				"url", targetURL,
+				"error", err,
+				"console_logs", consoleLogs,
+				"network_logs", networkLogs)
+		}
 		return "", fmt.Errorf("failed to navigate to URL %s: %w", targetURL, err)
 	}
 
 	// Get the final HTML content
 	content, err := page.Content()
 	if err != nil {
+		// Log debug info when running in test mode
+		if testing.Testing() && (len(consoleLogs) > 0 || len(networkLogs) > 0) {
+			p.logger.Error("Failed to get content with debug info",
+				"url", targetURL,
+				"error", err,
+				"console_logs", consoleLogs,
+				"network_logs", networkLogs)
+		}
 		return "", fmt.Errorf("failed to get page content: %w", err)
 	}
 
