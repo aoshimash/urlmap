@@ -28,6 +28,11 @@ jobs:
           go-version: ${{ matrix.go-version }}
           cache: true
 
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y gcc g++ libc6-dev
+
       - name: Download dependencies
         run: go mod download
 
@@ -57,6 +62,8 @@ jobs:
       - name: Run tests
         run: go test -v -race -coverprofile=coverage.out ./...
         env:
+          # Enable CGO for race detection
+          CGO_ENABLED: 1
           # Ensure Playwright uses the pre-installed browsers
           PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
 
