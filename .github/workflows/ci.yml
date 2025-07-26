@@ -10,6 +10,9 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.48.0-noble
+      options: --user 1001
 
     strategy:
       matrix:
@@ -45,22 +48,17 @@ jobs:
       - name: Build
         run: go build -v ./...
 
-      - name: Install Playwright CLI
+      - name: Install Playwright CLI for Go
         run: go install github.com/playwright-community/playwright-go/cmd/playwright@latest
 
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-playwright-
-
-      - name: Install Playwright browsers
-        run: playwright install --with-deps chromium
+      # Playwright browsers are already installed in the Docker image
+      # No need to install or cache them separately
 
       - name: Run tests
         run: go test -v -race -coverprofile=coverage.out ./...
+        env:
+          # Ensure Playwright uses the pre-installed browsers
+          PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
 
       - name: Upload coverage to Codecov
         if: matrix.go-version == '1.24'
