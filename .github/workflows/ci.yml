@@ -27,8 +27,11 @@ jobs:
           go-version: ${{ matrix.go-version }}
           cache: true
 
-      - name: Install build dependencies
+      - name: Setup environment
         run: |
+          # Fix git ownership issue in Docker
+          git config --global --add safe.directory /__w/urlmap/urlmap
+          # Install build dependencies
           apt-get update
           apt-get install -y gcc g++ libc6-dev
 
