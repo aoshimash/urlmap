@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"log/slog"
+	"os"
 	"testing"
 	"time"
 )
@@ -78,6 +79,11 @@ func TestBrowserPool_AcquireContext(t *testing.T) {
 }
 
 func TestBrowserPool_RenderPage(t *testing.T) {
+	// Skip this test in CI environment due to missing dependencies
+	if os.Getenv("CI") == "true" {
+		t.Skip("Skipping browser test in CI environment")
+	}
+
 	logger := slog.Default()
 	config := &JSConfig{
 		Enabled:     true,
