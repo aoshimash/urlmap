@@ -163,10 +163,3 @@ func RetryTest(t *testing.T, maxAttempts int, testFunc func() error) {
 	// All attempts failed
 	t.Errorf("Test failed after %d attempts. Last error: %v", maxAttempts, lastErr)
 }
-
-// time import for RetryTest
-func init() {
-	// Ensure time is imported
-	_ = time.Second
-}
-
