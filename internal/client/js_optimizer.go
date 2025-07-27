@@ -86,7 +86,7 @@ func OptimizePage(page playwright.Page) error {
 func ApplyTimeoutStrategy(page playwright.Page, strategy TimeoutStrategy) {
 	// Set navigation timeout
 	page.SetDefaultNavigationTimeout(float64(strategy.Navigation.Milliseconds()))
-	
+
 	// Set general timeout for other operations
 	page.SetDefaultTimeout(float64(strategy.Script.Milliseconds()))
 }
@@ -117,9 +117,9 @@ func GetOptimizedBrowserOptions(headless bool) playwright.BrowserTypeLaunchOptio
 // GetOptimizedContextOptions returns optimized browser context options
 func GetOptimizedContextOptions(userAgent string) playwright.BrowserNewContextOptions {
 	options := playwright.BrowserNewContextOptions{
-		UserAgent: playwright.String(userAgent),
+		UserAgent:         playwright.String(userAgent),
 		JavaScriptEnabled: playwright.Bool(true),
-		BypassCSP: playwright.Bool(true),
+		BypassCSP:         playwright.Bool(true),
 		IgnoreHttpsErrors: playwright.Bool(true),
 		// Disable permissions that might slow down rendering
 		Permissions: []string{},
@@ -130,6 +130,6 @@ func GetOptimizedContextOptions(userAgent string) playwright.BrowserNewContextOp
 		// Set timezone to avoid timezone detection
 		TimezoneId: playwright.String("UTC"),
 	}
-	
+
 	return options
 }
