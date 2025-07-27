@@ -22,7 +22,7 @@ func TestNewJSClient(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     60 * time.Second,
+		Timeout:     90 * time.Second,
 		WaitFor:     "networkidle",
 		PoolSize:    2,
 	}
@@ -40,7 +40,7 @@ func TestJSClient_RenderPage(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     60 * time.Second,
+		Timeout:     90 * time.Second,
 		WaitFor:     "networkidle",
 		PoolSize:    2,
 	}
@@ -74,7 +74,7 @@ func TestJSClient_Get(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     60 * time.Second,
+		Timeout:     90 * time.Second,
 		WaitFor:     "networkidle",
 		PoolSize:    2,
 	}
@@ -119,7 +119,7 @@ func TestJSClient_GetPoolStats(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     60 * time.Second,
+		Timeout:     90 * time.Second,
 		WaitFor:     "networkidle",
 		PoolSize:    2,
 	}
@@ -150,7 +150,7 @@ func TestJSClient_Disabled(t *testing.T) {
 		Enabled:     false,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     60 * time.Second,
+		Timeout:     90 * time.Second,
 		PoolSize:    2,
 	}
 

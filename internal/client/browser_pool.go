@@ -11,6 +11,9 @@ import (
 	"github.com/playwright-community/playwright-go"
 )
 
+// Global initialization lock to prevent concurrent Playwright installations
+var globalInitMu sync.Mutex
+
 // BrowserPool manages shared browser instances for JavaScript rendering
 type BrowserPool struct {
 	playwright *playwright.Playwright
@@ -85,13 +88,19 @@ func (p *BrowserPool) initialize() error {
 		return nil
 	}
 
+	// Use global lock for Playwright initialization
+	globalInitMu.Lock()
+	defer globalInitMu.Unlock()
+
 	p.logger.Debug("Initializing browser pool", "browser_type", p.config.BrowserType)
 
 	// Install Playwright (this will be a no-op if already installed)
+	p.logger.Debug("Installing Playwright browsers...")
 	err := playwright.Install()
 	if err != nil {
 		return fmt.Errorf("failed to install Playwright: %w", err)
 	}
+	p.logger.Debug("Playwright browsers installed")
 
 	// Run Playwright
 	pw, err := playwright.Run()

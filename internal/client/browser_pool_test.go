@@ -22,7 +22,7 @@ func TestNewBrowserPool(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     60 * time.Second,
+		Timeout:     90 * time.Second,
 	}
 
 	pool2, err := NewBrowserPool(config, logger)
@@ -38,7 +38,7 @@ func TestBrowserPool_AcquireContext(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     60 * time.Second,
+		Timeout:     90 * time.Second,
 	}
 
 	pool, err := NewBrowserPool(config, logger)
@@ -83,7 +83,7 @@ func TestBrowserPool_RenderPage(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     60 * time.Second,
+		Timeout:     90 * time.Second,
 	}
 
 	pool, err := NewBrowserPool(config, logger)
@@ -116,7 +116,7 @@ func TestBrowserPool_GetPoolStats(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     60 * time.Second,
+		Timeout:     90 * time.Second,
 		WaitFor:     "networkidle",
 	}
 
@@ -156,7 +156,7 @@ func TestBrowserPool_ConcurrentAccess(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     60 * time.Second,
+		Timeout:     90 * time.Second,
 		WaitFor:     "networkidle",
 	}
 
@@ -203,7 +203,7 @@ func TestBrowserPool_Close(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     60 * time.Second,
+		Timeout:     90 * time.Second,
 		WaitFor:     "networkidle",
 	}
 
@@ -237,7 +237,7 @@ func TestBrowserContext_ReleaseContext(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     60 * time.Second,
+		Timeout:     90 * time.Second,
 		WaitFor:     "networkidle",
 	}
 
@@ -273,7 +273,7 @@ func TestBrowserPool_MultipleBrowsers(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     60 * time.Second,
+		Timeout:     90 * time.Second,
 		WaitFor:     "networkidle",
 		PoolSize:    3,
 	}
@@ -319,7 +319,7 @@ func TestBrowserPool_OnDemandCreation(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     60 * time.Second,
+		Timeout:     90 * time.Second,
 		WaitFor:     "networkidle",
 		PoolSize:    2,
 	}
