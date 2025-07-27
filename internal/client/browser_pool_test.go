@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"log/slog"
-	"os"
 	"testing"
 	"time"
 )

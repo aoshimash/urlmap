@@ -2,7 +2,6 @@ package client
 
 import (
 	"log/slog"
-	"os"
 	"testing"
 	"time"
 
