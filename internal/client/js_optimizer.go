@@ -59,13 +59,15 @@ func OptimizePage(page playwright.Page) error {
 			get: () => false,
 		});
 		
-		// Override permissions API
-		const originalQuery = window.navigator.permissions.query;
-		window.navigator.permissions.query = (parameters) => (
-			parameters.name === 'notifications' ?
-				Promise.resolve({ state: Notification.permission }) :
-				originalQuery(parameters)
-		);
+		// Override permissions API if it exists
+		if (window.navigator.permissions && window.navigator.permissions.query) {
+			const originalQuery = window.navigator.permissions.query;
+			window.navigator.permissions.query = (parameters) => (
+				parameters.name === 'notifications' ?
+					Promise.resolve({ state: Notification.permission }) :
+					originalQuery(parameters)
+			);
+		}
 		
 		// Reduce animation overhead
 		if (window.CSS && CSS.supports && CSS.supports('animation', 'none')) {
@@ -98,18 +100,15 @@ func GetOptimizedBrowserOptions(headless bool) playwright.BrowserTypeLaunchOptio
 		Args: []string{
 			"--disable-blink-features=AutomationControlled",
 			"--disable-dev-shm-usage",
-			"--disable-web-security",
 			"--no-sandbox",
 			"--disable-setuid-sandbox",
 			"--disable-gpu",
 			"--disable-accelerated-2d-canvas",
-			"--disable-features=site-per-process",
 			"--disable-background-timer-throttling",
 			"--disable-backgrounding-occluded-windows",
 			"--disable-renderer-backgrounding",
 			"--disable-features=TranslateUI",
 			"--disable-ipc-flooding-protection",
-			"--force-color-profile=srgb",
 		},
 	}
 }
@@ -119,14 +118,9 @@ func GetOptimizedContextOptions(userAgent string) playwright.BrowserNewContextOp
 	options := playwright.BrowserNewContextOptions{
 		UserAgent:         playwright.String(userAgent),
 		JavaScriptEnabled: playwright.Bool(true),
-		BypassCSP:         playwright.Bool(true),
 		IgnoreHttpsErrors: playwright.Bool(true),
-		// Disable permissions that might slow down rendering
-		Permissions: []string{},
 		// Set a generic locale to avoid locale-specific loading
 		Locale: playwright.String("en-US"),
-		// Disable geolocation to avoid permission prompts
-		Geolocation: nil,
 		// Set timezone to avoid timezone detection
 		TimezoneId: playwright.String("UTC"),
 	}
