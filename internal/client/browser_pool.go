@@ -11,10 +11,13 @@ import (
 	"github.com/playwright-community/playwright-go"
 )
 
+// Global initialization lock to prevent concurrent Playwright installations
+var globalInitMu sync.Mutex
+
 // BrowserPool manages shared browser instances for JavaScript rendering
 type BrowserPool struct {
 	playwright *playwright.Playwright
-	browser    playwright.Browser
+	browsers   []playwright.Browser // Multiple browser instances
 	config     *JSConfig
 	logger     *slog.Logger
 
@@ -22,6 +25,10 @@ type BrowserPool struct {
 	contextPool chan *BrowserContext
 	maxContexts int
 	mu          sync.RWMutex
+
+	// Browser instance management
+	currentBrowserIdx int
+	browserMu         sync.Mutex
 
 	// Lifecycle management
 	initialized bool
@@ -48,11 +55,18 @@ func NewBrowserPool(config *JSConfig, logger *slog.Logger) (*BrowserPool, error)
 		logger = slog.Default()
 	}
 
+	poolSize := config.PoolSize
+	if poolSize <= 0 {
+		poolSize = 2 // Default pool size
+	}
+
 	pool := &BrowserPool{
-		config:      config,
-		logger:      logger,
-		maxContexts: 10, // Default max contexts
-		contextPool: make(chan *BrowserContext, 10),
+		config:            config,
+		logger:            logger,
+		maxContexts:       10, // Default max contexts per browser
+		contextPool:       make(chan *BrowserContext, 10*poolSize),
+		browsers:          make([]playwright.Browser, 0, poolSize),
+		currentBrowserIdx: 0,
 	}
 
 	// Initialize the pool if JS rendering is enabled
@@ -74,13 +88,19 @@ func (p *BrowserPool) initialize() error {
 		return nil
 	}
 
+	// Use global lock for Playwright initialization
+	globalInitMu.Lock()
+	defer globalInitMu.Unlock()
+
 	p.logger.Debug("Initializing browser pool", "browser_type", p.config.BrowserType)
 
 	// Install Playwright (this will be a no-op if already installed)
+	p.logger.Debug("Installing Playwright browsers...")
 	err := playwright.Install()
 	if err != nil {
 		return fmt.Errorf("failed to install Playwright: %w", err)
 	}
+	p.logger.Debug("Playwright browsers installed")
 
 	// Run Playwright
 	pw, err := playwright.Run()
@@ -89,7 +109,7 @@ func (p *BrowserPool) initialize() error {
 	}
 	p.playwright = pw
 
-	// Launch browser
+	// Get browser type
 	var browserType playwright.BrowserType
 	switch p.config.BrowserType {
 	case "chromium":
@@ -102,21 +122,90 @@ func (p *BrowserPool) initialize() error {
 		return fmt.Errorf("unsupported browser type: %s", p.config.BrowserType)
 	}
 
+	// Launch the first browser instance
 	browser, err := browserType.Launch(playwright.BrowserTypeLaunchOptions{
 		Headless: playwright.Bool(p.config.Headless),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to launch browser: %w", err)
+		return fmt.Errorf("failed to launch first browser: %w", err)
 	}
-	p.browser = browser
+	p.browsers = append(p.browsers, browser)
 
 	p.initialized = true
 	p.logger.Info("Browser pool initialized successfully",
 		"browser_type", p.config.BrowserType,
 		"headless", p.config.Headless,
-		"max_contexts", p.maxContexts)
+		"pool_size", len(p.browsers),
+		"max_pool_size", cap(p.browsers),
+		"max_contexts_per_browser", p.maxContexts)
 
 	return nil
+}
+
+// launchNewBrowserLocked creates and launches a new browser instance (must be called with browserMu held)
+func (p *BrowserPool) launchNewBrowserLocked() (int, error) {
+
+	// Check if we've reached the pool size limit
+	if len(p.browsers) >= cap(p.browsers) {
+		return -1, fmt.Errorf("browser pool is at capacity: %d", cap(p.browsers))
+	}
+
+	// Get browser type
+	var browserType playwright.BrowserType
+	switch p.config.BrowserType {
+	case "chromium":
+		browserType = p.playwright.Chromium
+	case "firefox":
+		browserType = p.playwright.Firefox
+	case "webkit":
+		browserType = p.playwright.WebKit
+	default:
+		return -1, fmt.Errorf("unsupported browser type: %s", p.config.BrowserType)
+	}
+
+	// Launch new browser
+	browser, err := browserType.Launch(playwright.BrowserTypeLaunchOptions{
+		Headless: playwright.Bool(p.config.Headless),
+	})
+	if err != nil {
+		return -1, fmt.Errorf("failed to launch browser: %w", err)
+	}
+
+	// Add to browsers slice
+	idx := len(p.browsers)
+	p.browsers = append(p.browsers, browser)
+
+	p.logger.Info("Launched new browser instance",
+		"browser_index", idx,
+		"total_browsers", len(p.browsers))
+
+	return idx, nil
+}
+
+// getBrowser gets a browser using round-robin
+func (p *BrowserPool) getBrowser() (playwright.Browser, error) {
+	p.browserMu.Lock()
+	defer p.browserMu.Unlock()
+
+	// If no browsers exist, create the first one
+	if len(p.browsers) == 0 {
+		return nil, fmt.Errorf("no browsers initialized")
+	}
+
+	// Create more browsers if needed and under limit
+	if len(p.browsers) < cap(p.browsers) {
+		_, err := p.launchNewBrowserLocked()
+		if err != nil {
+			// Log but don't fail - use existing browsers
+			p.logger.Debug("Failed to launch additional browser", "error", err)
+		}
+	}
+
+	// Use round-robin to distribute load
+	browser := p.browsers[p.currentBrowserIdx]
+	p.currentBrowserIdx = (p.currentBrowserIdx + 1) % len(p.browsers)
+
+	return browser, nil
 }
 
 // AcquireContext gets a browser context from the pool
@@ -170,11 +259,13 @@ func (p *BrowserContext) ReleaseContext() {
 
 // createNewContext creates a new browser context
 func (p *BrowserPool) createNewContext() (*BrowserContext, error) {
-	if p.browser == nil {
-		return nil, fmt.Errorf("browser not initialized")
+	// Get a browser from the pool
+	browser, err := p.getBrowser()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get browser from pool: %w", err)
 	}
 
-	context, err := p.browser.NewContext(playwright.BrowserNewContextOptions{
+	context, err := browser.NewContext(playwright.BrowserNewContextOptions{
 		UserAgent: playwright.String(p.config.UserAgent),
 	})
 	if err != nil {
@@ -295,11 +386,14 @@ func (p *BrowserPool) GetPoolStats() map[string]interface{} {
 	defer p.mu.RUnlock()
 
 	return map[string]interface{}{
-		"initialized":  p.initialized,
-		"closed":       p.closed,
-		"pool_size":    cap(p.contextPool),
-		"max_contexts": p.maxContexts,
-		"available":    len(p.contextPool),
+		"initialized":        p.initialized,
+		"closed":             p.closed,
+		"browsers_active":    len(p.browsers),
+		"browsers_available": len(p.browsers), // All browsers are available via round-robin
+		"browser_pool_size":  cap(p.browsers),
+		"context_pool_size":  cap(p.contextPool),
+		"contexts_available": len(p.contextPool),
+		"max_contexts":       p.maxContexts,
 	}
 }
 
@@ -322,13 +416,18 @@ func (p *BrowserPool) Close() error {
 		}
 	}
 
-	// Close browser
-	if p.browser != nil {
-		if err := p.browser.Close(); err != nil {
-			p.logger.Warn("Failed to close browser", "error", err)
+	// Close all browsers
+	var closeErrors []error
+	for i, browser := range p.browsers {
+		if browser != nil {
+			p.logger.Debug("Closing browser", "browser_index", i)
+			if err := browser.Close(); err != nil {
+				p.logger.Warn("Failed to close browser", "browser_index", i, "error", err)
+				closeErrors = append(closeErrors, fmt.Errorf("browser %d: %w", i, err))
+			}
 		}
-		p.browser = nil
 	}
+	p.browsers = nil
 
 	// Stop Playwright
 	if p.playwright != nil {

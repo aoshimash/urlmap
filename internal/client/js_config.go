@@ -37,6 +37,9 @@ type JSConfig struct {
 
 	// Fallback indicates whether to fallback to HTTP client on JS errors
 	Fallback bool
+
+	// PoolSize specifies the number of browser instances in the pool
+	PoolSize int
 }
 
 // DefaultJSConfig returns a default JavaScript configuration
@@ -52,6 +55,7 @@ func DefaultJSConfig() *JSConfig {
 		StrictMode:  false,
 		Threshold:   0.5,
 		Fallback:    true,
+		PoolSize:    2,
 	}
 }
 
@@ -90,6 +94,11 @@ func (c *JSConfig) Validate() error {
 	// Validate timeout
 	if c.Timeout <= 0 {
 		return fmt.Errorf("timeout must be positive, got: %v", c.Timeout)
+	}
+
+	// Validate pool size
+	if c.PoolSize <= 0 {
+		return fmt.Errorf("pool size must be positive, got: %v", c.PoolSize)
 	}
 
 	return nil

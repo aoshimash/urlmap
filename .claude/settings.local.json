@@ -4,7 +4,10 @@
       "Bash(find:*)",
       "Bash(touch:*)",
       "Bash(gh pr checks:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(go:*)"
     ],
     "deny": []
   }

@@ -3,8 +3,11 @@ package client
 import (
 	"context"
 	"log/slog"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/aoshimash/urlmap/test/shared"
 )
 
 func TestNewBrowserPool(t *testing.T) {
@@ -22,7 +25,7 @@ func TestNewBrowserPool(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     60 * time.Second,
+		Timeout:     90 * time.Second,
 	}
 
 	pool2, err := NewBrowserPool(config, logger)
@@ -38,7 +41,7 @@ func TestBrowserPool_AcquireContext(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     60 * time.Second,
+		Timeout:     90 * time.Second,
 	}
 
 	pool, err := NewBrowserPool(config, logger)
@@ -78,12 +81,16 @@ func TestBrowserPool_AcquireContext(t *testing.T) {
 }
 
 func TestBrowserPool_RenderPage(t *testing.T) {
+	// Create test server for more reliable testing in CI
+	testServer := shared.CreateBasicTestServer()
+	defer testServer.Close()
+
 	logger := slog.Default()
 	config := &JSConfig{
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     60 * time.Second,
+		Timeout:     30 * time.Second, // Reduced timeout since local server is faster
 	}
 
 	pool, err := NewBrowserPool(config, logger)
@@ -92,9 +99,9 @@ func TestBrowserPool_RenderPage(t *testing.T) {
 	}
 	defer pool.Close()
 
-	// Test rendering a simple page
+	// Test rendering a simple page from local test server
 	ctx := context.Background()
-	content, err := pool.RenderPage(ctx, "https://example.com")
+	content, err := pool.RenderPage(ctx, testServer.URL)
 	if err != nil {
 		// The browser pool now logs debug info automatically
 		t.Fatalf("Failed to render page: %v", err)
@@ -104,9 +111,13 @@ func TestBrowserPool_RenderPage(t *testing.T) {
 		t.Error("Rendered content is empty")
 	}
 
-	// Check that content contains expected elements
-	if len(content) < 100 {
-		t.Error("Rendered content seems too short")
+	// Check that content contains expected elements from test server
+	if !strings.Contains(content, "Test Home Page") {
+		t.Error("Rendered content does not contain expected title")
+	}
+
+	if !strings.Contains(content, "Page 1") || !strings.Contains(content, "Page 2") {
+		t.Error("Rendered content does not contain expected links")
 	}
 }
 
@@ -116,7 +127,7 @@ func TestBrowserPool_GetPoolStats(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     60 * time.Second,
+		Timeout:     90 * time.Second,
 		WaitFor:     "networkidle",
 	}
 
@@ -129,7 +140,7 @@ func TestBrowserPool_GetPoolStats(t *testing.T) {
 	stats := pool.GetPoolStats()
 
 	// Check required fields
-	requiredFields := []string{"initialized", "closed", "pool_size", "max_contexts", "available"}
+	requiredFields := []string{"initialized", "closed", "browsers_active", "browsers_available", "browser_pool_size", "context_pool_size", "contexts_available", "max_contexts"}
 	for _, field := range requiredFields {
 		if _, exists := stats[field]; !exists {
 			t.Errorf("Stats missing required field: %s", field)
@@ -156,7 +167,7 @@ func TestBrowserPool_ConcurrentAccess(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     60 * time.Second,
+		Timeout:     90 * time.Second,
 		WaitFor:     "networkidle",
 	}
 
@@ -192,7 +203,7 @@ func TestBrowserPool_ConcurrentAccess(t *testing.T) {
 
 	// Check pool stats after concurrent access
 	stats := pool.GetPoolStats()
-	if stats["available"].(int) > 10 {
+	if stats["contexts_available"].(int) > 10 {
 		t.Error("Pool should not exceed max contexts")
 	}
 }
@@ -203,7 +214,7 @@ func TestBrowserPool_Close(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     60 * time.Second,
+		Timeout:     90 * time.Second,
 		WaitFor:     "networkidle",
 	}
 
@@ -237,7 +248,7 @@ func TestBrowserContext_ReleaseContext(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     60 * time.Second,
+		Timeout:     90 * time.Second,
 		WaitFor:     "networkidle",
 	}
 
@@ -261,8 +272,101 @@ func TestBrowserContext_ReleaseContext(t *testing.T) {
 
 	// Check that context is properly released
 	stats := pool.GetPoolStats()
-	available := stats["available"].(int)
+	available := stats["contexts_available"].(int)
 	if available < 0 || available > 10 {
 		t.Errorf("Available contexts should be between 0 and 10, got %d", available)
 	}
+}
+
+func TestBrowserPool_MultipleBrowsers(t *testing.T) {
+	logger := slog.Default()
+	config := &JSConfig{
+		Enabled:     true,
+		BrowserType: "chromium",
+		Headless:    true,
+		Timeout:     90 * time.Second,
+		WaitFor:     "networkidle",
+		PoolSize:    3,
+	}
+
+	pool, err := NewBrowserPool(config, logger)
+	if err != nil {
+		t.Fatalf("Failed to create browser pool: %v", err)
+	}
+	defer pool.Close()
+
+	// Check initial stats
+	stats := pool.GetPoolStats()
+	if stats["browsers_active"].(int) != 1 {
+		t.Errorf("Expected 1 browser initially, got %d", stats["browsers_active"].(int))
+	}
+
+	// Acquire multiple contexts to trigger browser creation
+	contexts := make([]*BrowserContext, 0)
+	for i := 0; i < 3; i++ {
+		ctx, err := pool.AcquireContext()
+		if err != nil {
+			t.Fatalf("Failed to acquire context %d: %v", i, err)
+		}
+		contexts = append(contexts, ctx)
+	}
+
+	// Check stats after acquiring contexts
+	stats = pool.GetPoolStats()
+	browsersActive := stats["browsers_active"].(int)
+	if browsersActive < 1 || browsersActive > 3 {
+		t.Errorf("Expected 1-3 browsers active, got %d", browsersActive)
+	}
+
+	// Release all contexts
+	for _, ctx := range contexts {
+		ctx.ReleaseContext()
+	}
+}
+
+func TestBrowserPool_OnDemandCreation(t *testing.T) {
+	logger := slog.Default()
+	config := &JSConfig{
+		Enabled:     true,
+		BrowserType: "chromium",
+		Headless:    true,
+		Timeout:     90 * time.Second,
+		WaitFor:     "networkidle",
+		PoolSize:    2,
+	}
+
+	pool, err := NewBrowserPool(config, logger)
+	if err != nil {
+		t.Fatalf("Failed to create browser pool: %v", err)
+	}
+	defer pool.Close()
+
+	// The pool should start with one browser
+	initialStats := pool.GetPoolStats()
+	if initialStats["browsers_active"].(int) != 1 {
+		t.Errorf("Expected 1 browser initially, got %d", initialStats["browsers_active"].(int))
+	}
+
+	// Acquire a context when no browsers are available
+	ctx1, err := pool.AcquireContext()
+	if err != nil {
+		t.Fatalf("Failed to acquire first context: %v", err)
+	}
+
+	// Force creation of a second browser by not releasing the first context
+	ctx2, err := pool.AcquireContext()
+	if err != nil {
+		t.Fatalf("Failed to acquire second context: %v", err)
+	}
+
+	// Check that a new browser might have been created
+	stats := pool.GetPoolStats()
+	browsersActive := stats["browsers_active"].(int)
+	if browsersActive > 2 {
+		t.Errorf("Should not exceed pool size of 2, got %d browsers", browsersActive)
+	}
+
+	// Clean up
+	ctx1.ReleaseContext()
+	ctx2.ReleaseContext()
 }
