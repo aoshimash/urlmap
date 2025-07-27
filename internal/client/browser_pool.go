@@ -102,7 +102,9 @@ func (p *BrowserPool) initialize() error {
 		return fmt.Errorf("unsupported browser type: %s", p.config.BrowserType)
 	}
 
-	browser, err := browserType.Launch(GetOptimizedBrowserOptions(p.config.Headless))
+	browser, err := browserType.Launch(playwright.BrowserTypeLaunchOptions{
+		Headless: playwright.Bool(p.config.Headless),
+	})
 	if err != nil {
 		return fmt.Errorf("failed to launch browser: %w", err)
 	}
@@ -172,7 +174,9 @@ func (p *BrowserPool) createNewContext() (*BrowserContext, error) {
 		return nil, fmt.Errorf("browser not initialized")
 	}
 
-	context, err := p.browser.NewContext(GetOptimizedContextOptions(p.config.UserAgent))
+	context, err := p.browser.NewContext(playwright.BrowserNewContextOptions{
+		UserAgent: playwright.String(p.config.UserAgent),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create browser context: %w", err)
 	}
@@ -210,12 +214,20 @@ func (p *BrowserPool) RenderPage(ctx context.Context, targetURL string) (string,
 	}
 	defer page.Close()
 
-	// Apply performance optimizations (skip in test mode to avoid CI issues)
+	// Apply minimal performance optimizations
+	// Block only the most resource-intensive content types
 	if !testing.Testing() {
-		if err := OptimizePage(page); err != nil {
-			p.logger.Warn("Failed to apply page optimizations", "error", err)
-			// Continue anyway, optimizations are not critical
-		}
+		page.Route("**/*", func(route playwright.Route) {
+			resourceType := route.Request().ResourceType()
+			switch resourceType {
+			case "image", "media", "font":
+				// Block only heavy resources
+				route.Abort()
+				return
+			default:
+				route.Continue()
+			}
+		})
 	}
 
 	// Setup debug handlers if running in test mode
@@ -224,12 +236,8 @@ func (p *BrowserPool) RenderPage(ctx context.Context, targetURL string) (string,
 		consoleLogs, networkLogs = SetupPageDebugHandlers(page)
 	}
 
-	// Apply timeout strategy (use config timeout if larger)
-	strategy := DefaultTimeoutStrategy()
-	if p.config.Timeout > strategy.Navigation {
-		strategy.Navigation = p.config.Timeout
-	}
-	ApplyTimeoutStrategy(page, strategy)
+	// Set timeout
+	page.SetDefaultTimeout(float64(p.config.Timeout.Milliseconds()))
 
 	// Navigate to the URL
 	var waitUntil *playwright.WaitUntilState
@@ -246,7 +254,7 @@ func (p *BrowserPool) RenderPage(ctx context.Context, targetURL string) (string,
 
 	_, err = page.Goto(targetURL, playwright.PageGotoOptions{
 		WaitUntil: waitUntil,
-		Timeout:   playwright.Float(float64(strategy.Navigation.Milliseconds())),
+		Timeout:   playwright.Float(float64(p.config.Timeout.Milliseconds())),
 	})
 	if err != nil {
 		// Log debug info when running in test mode
