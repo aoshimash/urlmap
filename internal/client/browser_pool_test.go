@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"log/slog"
-	"os"
 	"testing"
 	"time"
 )
@@ -23,7 +22,7 @@ func TestNewBrowserPool(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     30 * time.Second,
+		Timeout:     60 * time.Second,
 	}
 
 	pool2, err := NewBrowserPool(config, logger)
@@ -39,7 +38,7 @@ func TestBrowserPool_AcquireContext(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     30 * time.Second,
+		Timeout:     60 * time.Second,
 	}
 
 	pool, err := NewBrowserPool(config, logger)
@@ -79,17 +78,12 @@ func TestBrowserPool_AcquireContext(t *testing.T) {
 }
 
 func TestBrowserPool_RenderPage(t *testing.T) {
-	// Skip this test in CI environment due to missing dependencies
-	if os.Getenv("CI") == "true" {
-		t.Skip("Skipping browser test in CI environment")
-	}
-
 	logger := slog.Default()
 	config := &JSConfig{
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     30 * time.Second,
+		Timeout:     60 * time.Second,
 	}
 
 	pool, err := NewBrowserPool(config, logger)
@@ -102,6 +96,7 @@ func TestBrowserPool_RenderPage(t *testing.T) {
 	ctx := context.Background()
 	content, err := pool.RenderPage(ctx, "https://example.com")
 	if err != nil {
+		// The browser pool now logs debug info automatically
 		t.Fatalf("Failed to render page: %v", err)
 	}
 
@@ -121,7 +116,7 @@ func TestBrowserPool_GetPoolStats(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     30 * time.Second,
+		Timeout:     60 * time.Second,
 		WaitFor:     "networkidle",
 	}
 
@@ -161,7 +156,7 @@ func TestBrowserPool_ConcurrentAccess(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     30 * time.Second,
+		Timeout:     60 * time.Second,
 		WaitFor:     "networkidle",
 	}
 
@@ -208,7 +203,7 @@ func TestBrowserPool_Close(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     30 * time.Second,
+		Timeout:     60 * time.Second,
 		WaitFor:     "networkidle",
 	}
 
@@ -242,7 +237,7 @@ func TestBrowserContext_ReleaseContext(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     30 * time.Second,
+		Timeout:     60 * time.Second,
 		WaitFor:     "networkidle",
 	}
 

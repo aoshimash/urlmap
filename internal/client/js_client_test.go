@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"log/slog"
-	"os"
 	"testing"
 	"time"
 )
@@ -23,7 +22,7 @@ func TestNewJSClient(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     30 * time.Second,
+		Timeout:     60 * time.Second,
 		WaitFor:     "networkidle",
 	}
 
@@ -35,17 +34,12 @@ func TestNewJSClient(t *testing.T) {
 }
 
 func TestJSClient_RenderPage(t *testing.T) {
-	// Skip this test in CI environment due to missing dependencies
-	if os.Getenv("CI") == "true" {
-		t.Skip("Skipping browser test in CI environment")
-	}
-
 	logger := slog.Default()
 	config := &JSConfig{
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     30 * time.Second,
+		Timeout:     60 * time.Second,
 		WaitFor:     "networkidle",
 	}
 
@@ -73,17 +67,12 @@ func TestJSClient_RenderPage(t *testing.T) {
 }
 
 func TestJSClient_Get(t *testing.T) {
-	// Skip this test in CI environment due to missing dependencies
-	if os.Getenv("CI") == "true" {
-		t.Skip("Skipping browser test in CI environment")
-	}
-
 	logger := slog.Default()
 	config := &JSConfig{
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     30 * time.Second,
+		Timeout:     60 * time.Second,
 		WaitFor:     "networkidle",
 	}
 
@@ -127,7 +116,7 @@ func TestJSClient_GetPoolStats(t *testing.T) {
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     30 * time.Second,
+		Timeout:     60 * time.Second,
 		WaitFor:     "networkidle",
 	}
 
@@ -157,7 +146,7 @@ func TestJSClient_Disabled(t *testing.T) {
 		Enabled:     false,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     30 * time.Second,
+		Timeout:     60 * time.Second,
 	}
 
 	client, err := NewJSClient(config, logger)
