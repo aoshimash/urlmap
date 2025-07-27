@@ -244,7 +244,6 @@ func (p *BrowserPool) RenderPage(ctx context.Context, targetURL string) (string,
 		waitUntil = playwright.WaitUntilStateNetworkidle
 	}
 
-
 	_, err = page.Goto(targetURL, playwright.PageGotoOptions{
 		WaitUntil: waitUntil,
 		Timeout:   playwright.Float(float64(strategy.Navigation.Milliseconds())),
