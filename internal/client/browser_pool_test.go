@@ -3,8 +3,11 @@ package client
 import (
 	"context"
 	"log/slog"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/aoshimash/urlmap/test/shared"
 )
 
 func TestNewBrowserPool(t *testing.T) {
@@ -78,12 +81,16 @@ func TestBrowserPool_AcquireContext(t *testing.T) {
 }
 
 func TestBrowserPool_RenderPage(t *testing.T) {
+	// Create test server for more reliable testing in CI
+	testServer := shared.CreateBasicTestServer()
+	defer testServer.Close()
+
 	logger := slog.Default()
 	config := &JSConfig{
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     90 * time.Second,
+		Timeout:     30 * time.Second, // Reduced timeout since local server is faster
 	}
 
 	pool, err := NewBrowserPool(config, logger)
@@ -92,9 +99,9 @@ func TestBrowserPool_RenderPage(t *testing.T) {
 	}
 	defer pool.Close()
 
-	// Test rendering a simple page
+	// Test rendering a simple page from local test server
 	ctx := context.Background()
-	content, err := pool.RenderPage(ctx, "https://example.com")
+	content, err := pool.RenderPage(ctx, testServer.URL)
 	if err != nil {
 		// The browser pool now logs debug info automatically
 		t.Fatalf("Failed to render page: %v", err)
@@ -104,9 +111,13 @@ func TestBrowserPool_RenderPage(t *testing.T) {
 		t.Error("Rendered content is empty")
 	}
 
-	// Check that content contains expected elements
-	if len(content) < 100 {
-		t.Error("Rendered content seems too short")
+	// Check that content contains expected elements from test server
+	if !strings.Contains(content, "Test Home Page") {
+		t.Error("Rendered content does not contain expected title")
+	}
+
+	if !strings.Contains(content, "Page 1") || !strings.Contains(content, "Page 2") {
+		t.Error("Rendered content does not contain expected links")
 	}
 }
 

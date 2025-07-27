@@ -3,8 +3,11 @@ package client
 import (
 	"context"
 	"log/slog"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/aoshimash/urlmap/test/shared"
 )
 
 func TestNewJSClient(t *testing.T) {
@@ -35,12 +38,16 @@ func TestNewJSClient(t *testing.T) {
 }
 
 func TestJSClient_RenderPage(t *testing.T) {
+	// Create test server for more reliable testing in CI
+	testServer := shared.CreateBasicTestServer()
+	defer testServer.Close()
+
 	logger := slog.Default()
 	config := &JSConfig{
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     90 * time.Second,
+		Timeout:     30 * time.Second,
 		WaitFor:     "networkidle",
 		PoolSize:    2,
 	}
@@ -53,7 +60,7 @@ func TestJSClient_RenderPage(t *testing.T) {
 
 	// Test rendering a simple page
 	ctx := context.Background()
-	content, err := client.RenderPage(ctx, "https://example.com")
+	content, err := client.RenderPage(ctx, testServer.URL)
 	if err != nil {
 		t.Fatalf("Failed to render page: %v", err)
 	}
@@ -62,19 +69,27 @@ func TestJSClient_RenderPage(t *testing.T) {
 		t.Error("Rendered content is empty")
 	}
 
-	// Check that content contains expected elements
-	if len(content) < 100 {
-		t.Error("Rendered content seems too short")
+	// Check that content contains expected elements from test server
+	if !strings.Contains(content, "Test Home Page") {
+		t.Error("Rendered content does not contain expected title")
+	}
+
+	if !strings.Contains(content, "Page 1") || !strings.Contains(content, "Page 2") {
+		t.Error("Rendered content does not contain expected links")
 	}
 }
 
 func TestJSClient_Get(t *testing.T) {
+	// Create test server for more reliable testing in CI
+	testServer := shared.CreateBasicTestServer()
+	defer testServer.Close()
+
 	logger := slog.Default()
 	config := &JSConfig{
 		Enabled:     true,
 		BrowserType: "chromium",
 		Headless:    true,
-		Timeout:     90 * time.Second,
+		Timeout:     30 * time.Second,
 		WaitFor:     "networkidle",
 		PoolSize:    2,
 	}
@@ -87,7 +102,7 @@ func TestJSClient_Get(t *testing.T) {
 
 	// Test getting a page
 	ctx := context.Background()
-	response, err := client.Get(ctx, "https://example.com")
+	response, err := client.Get(ctx, testServer.URL)
 	if err != nil {
 		t.Fatalf("Failed to get page: %v", err)
 	}
@@ -96,8 +111,8 @@ func TestJSClient_Get(t *testing.T) {
 		t.Fatal("Response is nil")
 	}
 
-	if response.URL != "https://example.com" {
-		t.Errorf("Expected URL 'https://example.com', got '%s'", response.URL)
+	if response.URL != testServer.URL {
+		t.Errorf("Expected URL '%s', got '%s'", testServer.URL, response.URL)
 	}
 
 	if response.Content == "" {
@@ -108,8 +123,9 @@ func TestJSClient_Get(t *testing.T) {
 		t.Errorf("Expected status 200, got %d", response.Status)
 	}
 
-	if response.Host != "example.com" {
-		t.Errorf("Expected host 'example.com', got '%s'", response.Host)
+	// Check that content contains expected elements from test server
+	if !strings.Contains(response.Content, "Test Home Page") {
+		t.Error("Response content does not contain expected title")
 	}
 }
 
