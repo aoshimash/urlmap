@@ -35,12 +35,6 @@ func TestNewJSClient(t *testing.T) {
 }
 
 func TestJSClient_RenderPage(t *testing.T) {
-	// Skip this test in CI environment due to missing Playwright dependencies
-	// This should be addressed in Phase 2 (issue #63)
-	if os.Getenv("CI") == "true" {
-		t.Skip("Skipping browser test in CI environment - missing system dependencies")
-	}
-
 	logger := slog.Default()
 	config := &JSConfig{
 		Enabled:     true,
@@ -74,12 +68,6 @@ func TestJSClient_RenderPage(t *testing.T) {
 }
 
 func TestJSClient_Get(t *testing.T) {
-	// Skip this test in CI environment due to missing Playwright dependencies
-	// This should be addressed in Phase 2 (issue #63)
-	if os.Getenv("CI") == "true" {
-		t.Skip("Skipping browser test in CI environment - missing system dependencies")
-	}
-
 	logger := slog.Default()
 	config := &JSConfig{
 		Enabled:     true,

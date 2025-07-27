@@ -37,11 +37,6 @@ func TestNewUnifiedClient_HTTPOnly(t *testing.T) {
 }
 
 func TestNewUnifiedClient_JSEnabled(t *testing.T) {
-	// Skip this test in CI environment due to missing Playwright dependencies
-	// This should be addressed in Phase 2 (issue #63)
-	if os.Getenv("CI") == "true" {
-		t.Skip("Skipping browser test in CI environment - missing system dependencies")
-	}
 
 	config := &UnifiedConfig{
 		UserAgent: "test-agent",
