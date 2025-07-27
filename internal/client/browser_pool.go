@@ -214,6 +214,22 @@ func (p *BrowserPool) RenderPage(ctx context.Context, targetURL string) (string,
 	}
 	defer page.Close()
 
+	// Apply minimal performance optimizations
+	// Block only the most resource-intensive content types
+	if !testing.Testing() {
+		page.Route("**/*", func(route playwright.Route) {
+			resourceType := route.Request().ResourceType()
+			switch resourceType {
+			case "image", "media", "font":
+				// Block only heavy resources
+				route.Abort()
+				return
+			default:
+				route.Continue()
+			}
+		})
+	}
+
 	// Setup debug handlers if running in test mode
 	var consoleLogs, networkLogs []string
 	if testing.Testing() {
