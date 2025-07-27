@@ -3,7 +3,8 @@
     "allow": [
       "Bash(find:*)",
       "Bash(touch:*)",
-      "Bash(gh pr checks:*)"
+      "Bash(gh pr checks:*)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }
