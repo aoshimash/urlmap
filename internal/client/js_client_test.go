@@ -24,6 +24,7 @@ func TestNewJSClient(t *testing.T) {
 		Headless:    true,
 		Timeout:     60 * time.Second,
 		WaitFor:     "networkidle",
+		PoolSize:    2,
 	}
 
 	client2, err := NewJSClient(config, logger)
@@ -41,6 +42,7 @@ func TestJSClient_RenderPage(t *testing.T) {
 		Headless:    true,
 		Timeout:     60 * time.Second,
 		WaitFor:     "networkidle",
+		PoolSize:    2,
 	}
 
 	client, err := NewJSClient(config, logger)
@@ -74,6 +76,7 @@ func TestJSClient_Get(t *testing.T) {
 		Headless:    true,
 		Timeout:     60 * time.Second,
 		WaitFor:     "networkidle",
+		PoolSize:    2,
 	}
 
 	client, err := NewJSClient(config, logger)
@@ -118,6 +121,7 @@ func TestJSClient_GetPoolStats(t *testing.T) {
 		Headless:    true,
 		Timeout:     60 * time.Second,
 		WaitFor:     "networkidle",
+		PoolSize:    2,
 	}
 
 	client, err := NewJSClient(config, logger)
@@ -132,7 +136,7 @@ func TestJSClient_GetPoolStats(t *testing.T) {
 	}
 
 	// Check required fields
-	requiredFields := []string{"initialized", "closed", "pool_size", "max_contexts", "available"}
+	requiredFields := []string{"initialized", "closed", "browsers_active", "browsers_available", "browser_pool_size", "context_pool_size", "contexts_available", "max_contexts"}
 	for _, field := range requiredFields {
 		if _, exists := stats[field]; !exists {
 			t.Errorf("Stats missing required field: %s", field)
@@ -147,6 +151,7 @@ func TestJSClient_Disabled(t *testing.T) {
 		BrowserType: "chromium",
 		Headless:    true,
 		Timeout:     60 * time.Second,
+		PoolSize:    2,
 	}
 
 	client, err := NewJSClient(config, logger)

@@ -44,6 +44,7 @@ var (
 	jsAuto       bool
 	jsAutoStrict bool
 	jsThreshold  float64
+	jsPoolSize   int
 
 	// Robots.txt flags
 	respectRobots bool
@@ -101,6 +102,9 @@ func init() {
 	rootCmd.Flags().BoolVar(&jsAutoStrict, "js-auto-strict", false, "Enable strict automatic detection with dynamic verification")
 	rootCmd.Flags().Float64Var(&jsThreshold, "js-threshold", 0.5, "SPA detection threshold (0.0-1.0)")
 
+	// Browser pool flags
+	rootCmd.Flags().IntVar(&jsPoolSize, "js-pool-size", 2, "Number of browser instances in the pool")
+
 	// Robots.txt flags
 	rootCmd.Flags().BoolVar(&respectRobots, "respect-robots", false, "Respect robots.txt rules and crawl delays")
 
@@ -145,6 +149,7 @@ func runCrawl(cmd *cobra.Command, args []string) error {
 			AutoDetect:  jsAuto || jsAutoStrict,
 			StrictMode:  jsAutoStrict,
 			Threshold:   jsThreshold,
+			PoolSize:    jsPoolSize,
 		}
 	}
 
