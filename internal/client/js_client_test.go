@@ -218,3 +218,162 @@ func TestJSResponse_StatusCode(t *testing.T) {
 		t.Errorf("Expected status 200, got %d", status)
 	}
 }
+
+func TestJSClient_CacheHit(t *testing.T) {
+	// Create test server
+	testServer := shared.CreateBasicTestServer()
+	defer testServer.Close()
+
+	logger := slog.Default()
+	config := &JSConfig{
+		Enabled:      true,
+		BrowserType:  "chromium",
+		Headless:     true,
+		Timeout:      30 * time.Second,
+		WaitFor:      "networkidle",
+		PoolSize:     1,
+		CacheEnabled: true,
+		CacheSize:    10,
+		CacheTTL:     1 * time.Hour,
+	}
+
+	client, err := NewJSClient(config, logger)
+	if err != nil {
+		t.Fatalf("Failed to create JS client: %v", err)
+	}
+	defer client.Close()
+
+	ctx := context.Background()
+
+	// First request - should not be cached
+	response1, err := client.Get(ctx, testServer.URL)
+	if err != nil {
+		t.Fatalf("Failed to get page: %v", err)
+	}
+
+	if response1.FromCache {
+		t.Error("First request should not be from cache")
+	}
+
+	// Second request - should be cached
+	response2, err := client.Get(ctx, testServer.URL)
+	if err != nil {
+		t.Fatalf("Failed to get cached page: %v", err)
+	}
+
+	if !response2.FromCache {
+		t.Error("Second request should be from cache")
+	}
+
+	// Content should be the same
+	if response1.Content != response2.Content {
+		t.Error("Cached content should match original content")
+	}
+
+	// Check cache stats
+	cacheStats := client.GetCacheStats()
+	if cacheStats == nil {
+		t.Fatal("Cache stats should not be nil")
+	}
+
+	if cacheStats["size"].(int) != 1 {
+		t.Errorf("Expected cache size 1, got %v", cacheStats["size"])
+	}
+}
+
+func TestJSClient_CacheExpiration(t *testing.T) {
+	// Create test server
+	testServer := shared.CreateBasicTestServer()
+	defer testServer.Close()
+
+	logger := slog.Default()
+	config := &JSConfig{
+		Enabled:      true,
+		BrowserType:  "chromium",
+		Headless:     true,
+		Timeout:      30 * time.Second,
+		WaitFor:      "networkidle",
+		PoolSize:     1,
+		CacheEnabled: true,
+		CacheSize:    10,
+		CacheTTL:     100 * time.Millisecond, // Short TTL for testing
+	}
+
+	client, err := NewJSClient(config, logger)
+	if err != nil {
+		t.Fatalf("Failed to create JS client: %v", err)
+	}
+	defer client.Close()
+
+	ctx := context.Background()
+
+	// First request
+	response1, err := client.Get(ctx, testServer.URL)
+	if err != nil {
+		t.Fatalf("Failed to get page: %v", err)
+	}
+
+	if response1.FromCache {
+		t.Error("First request should not be from cache")
+	}
+
+	// Wait for cache to expire
+	time.Sleep(150 * time.Millisecond)
+
+	// Second request - should not be cached (expired)
+	response2, err := client.Get(ctx, testServer.URL)
+	if err != nil {
+		t.Fatalf("Failed to get page after expiration: %v", err)
+	}
+
+	if response2.FromCache {
+		t.Error("Request after expiration should not be from cache")
+	}
+}
+
+func TestJSClient_CacheDisabled(t *testing.T) {
+	// Create test server
+	testServer := shared.CreateBasicTestServer()
+	defer testServer.Close()
+
+	logger := slog.Default()
+	config := &JSConfig{
+		Enabled:      true,
+		BrowserType:  "chromium",
+		Headless:     true,
+		Timeout:      30 * time.Second,
+		WaitFor:      "networkidle",
+		PoolSize:     1,
+		CacheEnabled: false, // Cache disabled
+	}
+
+	client, err := NewJSClient(config, logger)
+	if err != nil {
+		t.Fatalf("Failed to create JS client: %v", err)
+	}
+	defer client.Close()
+
+	ctx := context.Background()
+
+	// First request
+	response1, err := client.Get(ctx, testServer.URL)
+	if err != nil {
+		t.Fatalf("Failed to get page: %v", err)
+	}
+
+	// Second request - should not be cached
+	response2, err := client.Get(ctx, testServer.URL)
+	if err != nil {
+		t.Fatalf("Failed to get page: %v", err)
+	}
+
+	if response1.FromCache || response2.FromCache {
+		t.Error("No requests should be from cache when caching is disabled")
+	}
+
+	// Cache stats should be nil
+	cacheStats := client.GetCacheStats()
+	if cacheStats != nil {
+		t.Error("Cache stats should be nil when caching is disabled")
+	}
+}

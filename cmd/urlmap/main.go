@@ -46,6 +46,11 @@ var (
 	jsThreshold  float64
 	jsPoolSize   int
 
+	// Cache flags
+	jsCacheEnabled bool
+	jsCacheSize    int
+	jsCacheTTL     time.Duration
+
 	// Robots.txt flags
 	respectRobots bool
 )
@@ -105,6 +110,11 @@ func init() {
 	// Browser pool flags
 	rootCmd.Flags().IntVar(&jsPoolSize, "js-pool-size", 2, "Number of browser instances in the pool")
 
+	// Cache flags
+	rootCmd.Flags().BoolVar(&jsCacheEnabled, "js-cache", false, "Enable caching of JavaScript rendered pages")
+	rootCmd.Flags().IntVar(&jsCacheSize, "js-cache-size", 100, "Maximum number of cached entries")
+	rootCmd.Flags().DurationVar(&jsCacheTTL, "js-cache-ttl", 5*time.Minute, "Cache entry time-to-live")
+
 	// Robots.txt flags
 	rootCmd.Flags().BoolVar(&respectRobots, "respect-robots", false, "Respect robots.txt rules and crawl delays")
 
@@ -147,9 +157,12 @@ func runCrawl(cmd *cobra.Command, args []string) error {
 			UserAgent:   userAgent,
 			Fallback:    jsFallback,
 			AutoDetect:  jsAuto || jsAutoStrict,
-			StrictMode:  jsAutoStrict,
-			Threshold:   jsThreshold,
-			PoolSize:    jsPoolSize,
+			StrictMode:   jsAutoStrict,
+			Threshold:    jsThreshold,
+			PoolSize:     jsPoolSize,
+			CacheEnabled: jsCacheEnabled,
+			CacheSize:    jsCacheSize,
+			CacheTTL:     jsCacheTTL,
 		}
 	}
 
