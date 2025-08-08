@@ -1,0 +1,38 @@
+// .github/renovate.json5
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: [
+    "config:recommended",
+    ":semanticCommits",
+    ":separateMajorReleases",
+    ":disableDependencyDashboard",
+  ],
+  timezone: "Asia/Tokyo",
+  automerge: false,
+  platformAutomerge: false,
+  labels: ["dependencies", "renovate"],
+  prCreation: "immediate",
+  rangeStrategy: "replace",
+  rebaseWhen: "behind-base-branch",
+  packageRules: [
+    {
+      matchManagers: ["gomod"],
+      groupName: "Go modules",
+      groupSlug: "gomod-all",
+      separateMultipleMajor: false,
+      postUpdateOptions: ["gomodTidy"],
+    },
+    {
+      matchManagers: ["dockerfile"],
+      groupName: "Docker base images",
+      groupSlug: "docker-all",
+      separateMultipleMajor: false,
+    },
+    {
+      matchManagers: ["github-actions"],
+      groupName: "GitHub Actions",
+      groupSlug: "gha-all",
+      separateMultipleMajor: false,
+    },
+  ],
+}
