@@ -40,22 +40,34 @@ type JSConfig struct {
 
 	// PoolSize specifies the number of browser instances in the pool
 	PoolSize int
+
+	// CacheEnabled indicates whether to cache rendered pages
+	CacheEnabled bool
+
+	// CacheSize specifies the maximum number of cache entries
+	CacheSize int
+
+	// CacheTTL specifies how long cache entries remain valid
+	CacheTTL time.Duration
 }
 
 // DefaultJSConfig returns a default JavaScript configuration
 func DefaultJSConfig() *JSConfig {
 	return &JSConfig{
-		Enabled:     false,
-		BrowserType: "chromium",
-		Headless:    true,
-		Timeout:     30 * time.Second,
-		WaitFor:     "networkidle",
-		UserAgent:   "urlmap/1.0",
-		AutoDetect:  false,
-		StrictMode:  false,
-		Threshold:   0.5,
-		Fallback:    true,
-		PoolSize:    2,
+		Enabled:      false,
+		BrowserType:  "chromium",
+		Headless:     true,
+		Timeout:      30 * time.Second,
+		WaitFor:      "networkidle",
+		UserAgent:    "urlmap/1.0",
+		AutoDetect:   false,
+		StrictMode:   false,
+		Threshold:    0.5,
+		Fallback:     true,
+		PoolSize:     2,
+		CacheEnabled: false,
+		CacheSize:    100,
+		CacheTTL:     5 * time.Minute,
 	}
 }
 
@@ -99,6 +111,16 @@ func (c *JSConfig) Validate() error {
 	// Validate pool size
 	if c.PoolSize <= 0 {
 		return fmt.Errorf("pool size must be positive, got: %v", c.PoolSize)
+	}
+
+	// Validate cache configuration
+	if c.CacheEnabled {
+		if c.CacheSize <= 0 {
+			return fmt.Errorf("cache size must be positive when cache is enabled, got: %v", c.CacheSize)
+		}
+		if c.CacheTTL <= 0 {
+			return fmt.Errorf("cache TTL must be positive when cache is enabled, got: %v", c.CacheTTL)
+		}
 	}
 
 	return nil
